@@ -1,0 +1,8 @@
+[
+    {"name": "Ana Silva", "email": "ana@example.com", "role": "buyer"},
+    {"name": "Eduardo Erthal", "email": "eduardo@exemplo.com", "role": "admin"},
+    {"name": "Leo Pedreiro", "email": "leonardo@exemplo.com", "role": "buyer"},
+    {"name": "Mil Enas", "email": "Thousand@exemplo.com", "role": "buyer"},
+    {"name": "Jon Doe", "email": "jondoe@exemplo.com", "role": "buyer"},
+    {"name": "Dude Person", "email": "dudeperson@exemplo.com", "role": "buyer"}
+]
