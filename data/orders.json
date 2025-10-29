@@ -1,12 +1,101 @@
 [
-    {"userId": 1, "items": [{"product": "Fone sem fio", "qty": 1}], "total": 199.9},
-    {"userId": 2, "items": [{"product": "Televisor", "qty": 1}], "total": 2500},
-    {"userId": 3, "items": [{"product": "É Jordão", "qty": 2}], "total": 1645.6},
-    {"userId": 4, "items": [{"product": "Regata Minnesotta Timberwolves City Edition 2025/26", "qty": 1}, {"product": "Camisa Crontias Total 80", "qty": 1}], "total": 429},
-    {"userId": 5, "items": [{"product": "Caixa de papelão 250x80x190mm", "qty": 5}], "total": 300},
-    {"userId": 6, "items": [{"product": "Celta 2012", "qty": 1}], "total": 4500},
-    {"userId": 7, "items": [{"product": "Adidas Sambódromo", "qty": 2}], "total": 912.8},
-    {"userId": 8, "items": [{"product": "A famosa jabulani copa 2010 (mais raro ainda)", "qty": 1}], "total": 10000000},
-    {"userId": 9, "items": [{"product": "Televisor", "qty": 2}, {"product": "Fone sem fio", "qty": 2}], "total": 5399.8},
-    {"userId": 10, "items": [{"product": "Caixa de papelão 250x80x190mm", "qty": 2}, {"product": "Sacola plástica 40x90mm", "qty": 3}], "total": 267}
+    {
+        "usuario_id": 1,
+        "usuario_email": "ana@example.com",
+        "items": [{ "product": "Fone sem fio", "qty": 1 }],
+        "total": 199.9,
+        "status": "completed",
+        "data": "2025-10-01T10:15:00.000Z",
+        "pontos_fidelidade_gerados": 19
+    },
+    {
+        "usuario_id": 2,
+        "usuario_email": "eduardo@exemplo.com",
+        "items": [{ "product": "Televisor", "qty": 1 }],
+        "total": 2500,
+        "status": "shipped",
+        "data": "2025-09-20T14:30:00.000Z",
+        "pontos_fidelidade_gerados": 250
+    },
+    {
+        "usuario_id": 3,
+        "usuario_email": "leonardo@exemplo.com",
+        "items": [{ "product": "É Jordão", "qty": 2 }],
+        "total": 1645.6,
+        "status": "completed",
+        "data": "2025-10-10T09:00:00.000Z",
+        "pontos_fidelidade_gerados": 164
+    },
+    {
+        "usuario_id": 4,
+        "usuario_email": "Thousand@exemplo.com",
+        "items": [
+            { "product": "Regata Minnesotta Timberwolves City Edition 2025/26", "qty": 1 },
+            { "product": "Camisa Crontias Total 80", "qty": 1 }
+        ],
+        "total": 429,
+        "status": "delivered",
+        "data": "2025-08-15T16:45:00.000Z",
+        "pontos_fidelidade_gerados": 42
+    },
+    {
+        "usuario_id": 5,
+        "usuario_email": "jondoe@exemplo.com",
+        "items": [{ "product": "Caixa de papelão 250x80x190mm", "qty": 5 }],
+        "total": 300,
+        "status": "completed",
+        "data": "2025-10-05T11:20:00.000Z",
+        "pontos_fidelidade_gerados": 30
+    },
+    {
+        "usuario_id": 6,
+        "usuario_email": "dudeperson@exemplo.com",
+        "items": [{ "product": "Celta 2012", "qty": 1 }],
+        "total": 4500,
+        "status": "pending",
+        "data": "2025-10-25T08:00:00.000Z",
+        "pontos_fidelidade_gerados": 450
+    },
+    {
+        "usuario_id": 7,
+        "usuario_email": "ana@example.com",
+        "items": [{ "product": "Adidas Sambódromo", "qty": 2 }],
+        "total": 912.8,
+        "status": "completed",
+        "data": "2025-09-30T12:00:00.000Z",
+        "pontos_fidelidade_gerados": 91
+    },
+    {
+        "usuario_id": 8,
+        "usuario_email": "eduardo@exemplo.com",
+        "items": [{ "product": "A famosa jabulani copa 2010 (mais raro ainda)", "qty": 1 }],
+        "total": 10000000,
+        "status": "completed",
+        "data": "2025-07-01T07:30:00.000Z",
+        "pontos_fidelidade_gerados": 1000000
+    },
+    {
+        "usuario_id": 9,
+        "usuario_email": "leonardo@exemplo.com",
+        "items": [
+            { "product": "Televisor", "qty": 2 },
+            { "product": "Fone sem fio", "qty": 2 }
+        ],
+        "total": 5399.8,
+        "status": "shipped",
+        "data": "2025-10-12T13:10:00.000Z",
+        "pontos_fidelidade_gerados": 539
+    },
+    {
+        "usuario_id": 10,
+        "usuario_email": "Thousand@exemplo.com",
+        "items": [
+            { "product": "Caixa de papelão 250x80x190mm", "qty": 2 },
+            { "product": "Sacola plástica 40x90mm", "qty": 3 }
+        ],
+        "total": 267,
+        "status": "cancelled",
+        "data": "2025-09-01T18:00:00.000Z",
+        "pontos_fidelidade_gerados": 26
+    }
 ]
