@@ -4,7 +4,7 @@
         "usuario_email": "ana@example.com",
         "items": [{ "product": "Fone sem fio", "qty": 1 }],
         "total": 199.9,
-        "status": "completed",
+        "status": "completo",
         "data": "2025-10-01T10:15:00.000Z",
         "pontos_fidelidade_gerados": 19
     },
@@ -13,7 +13,7 @@
         "usuario_email": "eduardo@exemplo.com",
         "items": [{ "product": "Televisor", "qty": 1 }],
         "total": 2500,
-        "status": "shipped",
+        "status": "em trânsito",
         "data": "2025-09-20T14:30:00.000Z",
         "pontos_fidelidade_gerados": 250
     },
@@ -22,7 +22,7 @@
         "usuario_email": "leonardo@exemplo.com",
         "items": [{ "product": "É Jordão", "qty": 2 }],
         "total": 1645.6,
-        "status": "completed",
+        "status": "completo",
         "data": "2025-10-10T09:00:00.000Z",
         "pontos_fidelidade_gerados": 164
     },
@@ -34,7 +34,7 @@
             { "product": "Camisa Crontias Total 80", "qty": 1 }
         ],
         "total": 429,
-        "status": "delivered",
+        "status": "entregue",
         "data": "2025-08-15T16:45:00.000Z",
         "pontos_fidelidade_gerados": 42
     },
@@ -43,7 +43,7 @@
         "usuario_email": "jondoe@exemplo.com",
         "items": [{ "product": "Caixa de papelão 250x80x190mm", "qty": 5 }],
         "total": 300,
-        "status": "completed",
+        "status": "completo",
         "data": "2025-10-05T11:20:00.000Z",
         "pontos_fidelidade_gerados": 30
     },
@@ -52,7 +52,7 @@
         "usuario_email": "dudeperson@exemplo.com",
         "items": [{ "product": "Celta 2012", "qty": 1 }],
         "total": 4500,
-        "status": "pending",
+        "status": "pendente",
         "data": "2025-10-25T08:00:00.000Z",
         "pontos_fidelidade_gerados": 450
     },
@@ -61,7 +61,7 @@
         "usuario_email": "ana@example.com",
         "items": [{ "product": "Adidas Sambódromo", "qty": 2 }],
         "total": 912.8,
-        "status": "completed",
+        "status": "completo",
         "data": "2025-09-30T12:00:00.000Z",
         "pontos_fidelidade_gerados": 91
     },
@@ -70,7 +70,7 @@
         "usuario_email": "eduardo@exemplo.com",
         "items": [{ "product": "A famosa jabulani copa 2010 (mais raro ainda)", "qty": 1 }],
         "total": 10000000,
-        "status": "completed",
+        "status": "completo",
         "data": "2025-07-01T07:30:00.000Z",
         "pontos_fidelidade_gerados": 1000000
     },
@@ -82,7 +82,7 @@
             { "product": "Fone sem fio", "qty": 2 }
         ],
         "total": 5399.8,
-        "status": "shipped",
+        "status": "em trânsito",
         "data": "2025-10-12T13:10:00.000Z",
         "pontos_fidelidade_gerados": 539
     },
@@ -94,7 +94,7 @@
             { "product": "Sacola plástica 40x90mm", "qty": 3 }
         ],
         "total": 267,
-        "status": "cancelled",
+        "status": "cancelado",
         "data": "2025-09-01T18:00:00.000Z",
         "pontos_fidelidade_gerados": 26
     }
