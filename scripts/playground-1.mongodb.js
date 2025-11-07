@@ -59,534 +59,559 @@ db.transactions.drop();
 db.reviews.drop();
 
 // Users
+// Users
 db.createCollection('users', {
   validator: {
     $jsonSchema: {
       bsonType: 'object',
-      required: ['name','email','password'],
+      required: ['nome', 'email', 'senha'],
       properties: {
-        name: {bsonType: 'string'},
-        email: {bsonType: 'string', pattern: '^.+@.+\\..+$'},
-        password: {bsonType: 'string'},
-        address: {bsonType: 'object'},
-        location: {
+        nome: { bsonType: 'string' },
+        email: { bsonType: 'string', pattern: '^.+@.+\\..+$' },
+        senha: { bsonType: 'string' },
+        endereco: {
           bsonType: 'object',
           properties: {
-            type: {enum: ['Point']},
-            coordinates: {bsonType: 'array', minItems: 2, maxItems: 2}
+            rua: { bsonType: 'string' },
+            numero: { bsonType: 'string' },
+            cidade: { bsonType: 'string' },
+            estado: { bsonType: 'string' },
+            cep: { bsonType: 'string' },
+            pais: { bsonType: 'string' }
           }
         },
-        loyaltyPoints: {bsonType: 'int', minimum: 0}
+        localizacao_geografica: {
+          bsonType: 'object',
+          properties: {
+            type: { enum: ['Point'] },
+            coordinates: { bsonType: 'array', minItems: 2, maxItems: 2 }
+          }
+        },
+        pontos_fidelidade: { bsonType: 'int', minimum: 0 }
       }
     }
   }
 });
 
-// Categories
+// Categories (mantive simples)
 db.createCollection('categories', {
   validator: {
     $jsonSchema: {
-      bsonType: 'object', required: ['name'],
-      properties: { name: {bsonType: 'string'}, parentId: {bsonType: 'objectId'} }
+      bsonType: 'object',
+      required: ['name'],
+      properties: { name: { bsonType: 'string' }, parentId: { bsonType: 'objectId' } }
     }
   }
 });
 
-// Products
+// Products (schema compatível com os inserts em português)
 db.createCollection('products', {
   validator: {
     $jsonSchema: {
-      bsonType: 'object', required: ['name','price','quantity','sellerId','categoryId'],
+      bsonType: 'object',
+      required: ['nome', 'preco', 'quantidade_disponivel', 'categoria', 'vendedor'],
       properties: {
-        name: {bsonType: 'string'},
-        description: {bsonType: 'string'},
-        price: {bsonType: ['double','int','decimal']},
-        quantity: {bsonType: 'int'},
-        sellerId: {bsonType: 'objectId'},
-        categoryId: {bsonType: 'objectId'},
-        promotions: {
+        nome: { bsonType: 'string' },
+        descricao: { bsonType: 'string' },
+        preco: {
+          bsonType: 'object',
+          required: ['valor', 'moeda'],
+          properties: {
+            valor: { bsonType: ['double', 'int', 'decimal'] },
+            moeda: { bsonType: 'string' }
+          }
+        },
+        quantidade_disponivel: { bsonType: 'int' },
+        localizacao: { bsonType: 'string' },
+        categoria: { bsonType: 'string' },
+        promocoes_ativas: {
           bsonType: 'array',
           items: {
             bsonType: 'object',
-            required: ['discount','start','end'],
+            required: ['discount', 'start', 'end'],
             properties: {
-              discount: {bsonType: 'double'},
-              start: {bsonType: 'date'},
-              end: {bsonType: 'date'}
+              discount: { bsonType: ['double', 'int'] },
+              start: { bsonType: 'date' },
+              end: { bsonType: 'date' }
             }
           }
         },
-        location: {
-          bsonType: 'object',
-          properties: { type: {enum: ['Point']}, coordinates: {bsonType: 'array', minItems: 2, maxItems: 2} }
-        }
+        vendedor: { bsonType: 'string', pattern: '^.+@.+\\..+$' } // email do vendedor conforme inserts
       }
     }
   }
 });
 
-// Transactions
-db.createCollection('transactions', {
+// Orders (substitui a antiga transactions para manter compatibilidade com os inserts existentes)
+db.createCollection('orders', {
   validator: {
     $jsonSchema: {
-      bsonType: 'object', required: ['buyerId','sellerId','items','status','date'],
+      bsonType: 'object',
+      required: ['usuario_id', 'usuario_email', 'items', 'total', 'status', 'data'],
       properties: {
-        buyerId: {bsonType: 'objectId'},
-        sellerId: {bsonType: 'objectId'},
+        usuario_id: { bsonType: 'int' },
+        usuario_email: { bsonType: 'string', pattern: '^.+@.+\\..+$' },
         items: {
           bsonType: 'array',
           minItems: 1,
           items: {
-            bsonType: 'object', required: ['productId','qty','priceAtPurchase'],
-            properties: { productId: {bsonType: 'objectId'}, qty: {bsonType: 'int'}, priceAtPurchase: {bsonType: ['double','int','decimal']} }
+            bsonType: 'object',
+            required: ['product', 'qty'],
+            properties: {
+              product: { bsonType: 'string' },
+              qty: { bsonType: 'int' }
+            }
           }
         },
-        status: {enum: ['PENDING','PAID','SHIPPED','DELIVERED','CANCELLED']},
-        date: {bsonType: 'date'},
-        loyaltyPointsEarned: {bsonType: 'int'}
+        total: { bsonType: ['double', 'int', 'decimal'] },
+        status: { enum: ['completo', 'em trânsito', 'entregue', 'pendente', 'cancelado'] },
+        data: { bsonType: 'date' },
+        pontos_fidelidade_gerados: { bsonType: 'int' }
       }
     }
   }
 });
 
-// Reviews
+// Reviews (compatível com os inserts)
 db.createCollection('reviews', {
   validator: {
     $jsonSchema: {
-      bsonType: 'object', required: ['productId','buyerId','rating','text','date'],
+      bsonType: 'object',
+      required: ['userId', 'productName', 'rating', 'comment', 'date'],
       properties: {
-        productId: {bsonType: 'objectId'},
-        buyerId: {bsonType: 'objectId'},
-        sellerId: {bsonType: 'objectId'},
-        rating: {bsonType: 'int', minimum: 1, maximum: 5},
-        text: {bsonType: 'string'},
-        date: {bsonType: 'date'},
-        response: {
-          bsonType: 'object',
-          properties: { sellerId: {bsonType: 'objectId'}, text: {bsonType: 'string'}, date: {bsonType: 'date'} }
-        }
+        userId: { bsonType: 'int' },
+        productName: { bsonType: 'string' },
+        rating: { bsonType: 'int', minimum: 1, maximum: 5 },
+        comment: { bsonType: 'string' },
+        date: { bsonType: 'date' }
       }
     }
   }
 });
 
-// ---------------- 3) Inserts de exemplo (5 registros por coleção) ----------------
+// ---------------- Inserts corrigidos ----------------
 
+// USERS (IDs numéricos gerados via contador)
 db.getCollection('users').insertMany([
-    {
-        _id: getNextSequenceValue("userId"),
-        nome: "Ana Silva",
-        email: "ana@example.com",
-        senha: "REPLACE_WITH_HASHED_PASSWORD",
-        endereco: {
-            rua: "Rua das Flores",
-            numero: "123",
-            cidade: "São Paulo",
-            estado: "SP",
-            cep: "01000-000",
-            pais: "BR"
-        },
-        localizacao_geografica: { "type": "Point", "coordinates": [-46.633309, -23.55052] },
-        pontos_fidelidade: 0
+  {
+    _id: getNextSequenceValue("userId"),
+    nome: "Ana Silva",
+    email: "ana@example.com",
+    senha: "REPLACE_WITH_HASHED_PASSWORD",
+    endereco: {
+      rua: "Rua das Flores",
+      numero: "123",
+      cidade: "São Paulo",
+      estado: "SP",
+      cep: "01000-000",
+      pais: "BR"
     },
-    {
-        _id: getNextSequenceValue("userId"),
-        nome: "Eduardo Erthal",
-        email: "eduardo@exemplo.com",
-        senha: "REPLACE_WITH_HASHED_PASSWORD",
-        endereco: {
-            rua: "Avenida Central",
-            numero: "500",
-            cidade: "Rio de Janeiro",
-            estado: "RJ",
-            cep: "20000-000",
-            pais: "BR"
-        },
-        localizacao_geografica: { "type": "Point", "coordinates": [-43.209373, -22.903539] },
-        pontos_fidelidade: 0
+    localizacao_geografica: { type: "Point", coordinates: [-46.633309, -23.55052] },
+    pontos_fidelidade: 0
+  },
+  {
+    _id: getNextSequenceValue("userId"),
+    nome: "Eduardo Erthal",
+    email: "eduardo@exemplo.com",
+    senha: "REPLACE_WITH_HASHED_PASSWORD",
+    endereco: {
+      rua: "Avenida Central",
+      numero: "500",
+      cidade: "Rio de Janeiro",
+      estado: "RJ",
+      cep: "20000-000",
+      pais: "BR"
     },
-    {
-        _id: getNextSequenceValue("userId"),
-        nome: "Leo Pedreiro",
-        email: "leonardo@exemplo.com",
-        senha: "REPLACE_WITH_HASHED_PASSWORD",
-        endereco: {
-            rua: "Travessa do Sol",
-            numero: "45",
-            cidade: "Belo Horizonte",
-            estado: "MG",
-            cep: "30000-000",
-            pais: "BR"
-        },
-        localizacao_geografica: { "type": "Point", "coordinates": [-43.940539, -19.920833] },
-        pontos_fidelidade: 0
+    localizacao_geografica: { type: "Point", coordinates: [-43.209373, -22.903539] },
+    pontos_fidelidade: 0
+  },
+  {
+    _id: getNextSequenceValue("userId"),
+    nome: "Leo Pedreiro",
+    email: "leonardo@exemplo.com",
+    senha: "REPLACE_WITH_HASHED_PASSWORD",
+    endereco: {
+      rua: "Travessa do Sol",
+      numero: "45",
+      cidade: "Belo Horizonte",
+      estado: "MG",
+      cep: "30000-000",
+      pais: "BR"
     },
-    {
-        _id: getNextSequenceValue("userId"),
-        nome: "Mil Enas",
-        email: "Thousand@exemplo.com",
-        senha: "REPLACE_WITH_HASHED_PASSWORD",
-        endereco: {
-            rua: "Rua do Mercado",
-            numero: "10",
-            cidade: "Curitiba",
-            estado: "PR",
-            cep: "80000-000",
-            pais: "BR"
-        },
-        localizacao_geografica: { type: "Point", coordinates: [-49.264587, -25.428954] },
-        pontos_fidelidade: 0
+    localizacao_geografica: { type: "Point", coordinates: [-43.940539, -19.920833] },
+    pontos_fidelidade: 0
+  },
+  {
+    _id: getNextSequenceValue("userId"),
+    nome: "Mil Enas",
+    email: "Thousand@exemplo.com",
+    senha: "REPLACE_WITH_HASHED_PASSWORD",
+    endereco: {
+      rua: "Rua do Mercado",
+      numero: "10",
+      cidade: "Curitiba",
+      estado: "PR",
+      cep: "80000-000",
+      pais: "BR"
     },
-    {
-        _id: getNextSequenceValue("userId"),
-        nome: "Jon Doe",
-        email: "jondoe@exemplo.com",
-        senha: "REPLACE_WITH_HASHED_PASSWORD",
-        endereco: {
-            rua: "Alameda Verde",
-            numero: "77",
-            cidade: "Porto Alegre",
-            estado: "RS",
-            cep: "90000-000",
-            pais: "BR"
-        },
-        localizacao_geografica: { type: "Point", coordinates: [-51.2302, -30.0277] },
-        pontos_fidelidade: 0
+    localizacao_geografica: { type: "Point", coordinates: [-49.264587, -25.428954] },
+    pontos_fidelidade: 0
+  },
+  {
+    _id: getNextSequenceValue("userId"),
+    nome: "Jon Doe",
+    email: "jondoe@exemplo.com",
+    senha: "REPLACE_WITH_HASHED_PASSWORD",
+    endereco: {
+      rua: "Alameda Verde",
+      numero: "77",
+      cidade: "Porto Alegre",
+      estado: "RS",
+      cep: "90000-000",
+      pais: "BR"
     },
-    {
-        _id: getNextSequenceValue("userId"),
-        nome: "Dude Person",
-        email: "dudeperson@exemplo.com",
-        senha: "REPLACE_WITH_HASHED_PASSWORD",
-        endereco: {
-            rua: "Praça do Comércio",
-            numero: "1",
-            cidade: "Salvador",
-            estado: "BA",
-            cep: "40000-000",
-            pais: "BR"
-        },
-        localizacao_geografica: { type: "Point", coordinates: [-38.5023, -12.9714] },
-        pontos_fidelidade: 0
-    }
+    localizacao_geografica: { type: "Point", coordinates: [-51.2302, -30.0277] },
+    pontos_fidelidade: 0
+  },
+  {
+    _id: getNextSequenceValue("userId"),
+    nome: "Dude Person",
+    email: "dudeperson@exemplo.com",
+    senha: "REPLACE_WITH_HASHED_PASSWORD",
+    endereco: {
+      rua: "Praça do Comércio",
+      numero: "1",
+      cidade: "Salvador",
+      estado: "BA",
+      cep: "40000-000",
+      pais: "BR"
+    },
+    localizacao_geografica: { type: "Point", coordinates: [-38.5023, -12.9714] },
+    pontos_fidelidade: 0
+  }
 ]);
 
+// PRODUCTS (mantive campos em português conforme seus inserts)
 db.getCollection('products').insertMany([
-    {
-        "nome": "Fone sem fio",
-        "descricao": "Fone bluetooth sem fio, bateria de longa duração.",
-        "preco": { "valor": 199.9, "moeda": "BRL" },
-        "quantidade_disponivel": 10,
-        "localizacao": "São Paulo",
-        "categoria": "eletrônicos",
-        "promocoes_ativas": [],
-        "vendedor": "ana@example.com"
-    },
-    {
-        "nome": "Televisor",
-        "descricao": "Televisor LED 55'' com resolução 4K.",
-        "preco": { "valor": 2500, "moeda": "BRL" },
-        "quantidade_disponivel": 5,
-        "localizacao": "Rio de Janeiro",
-        "categoria": "eletrônicos",
-        "promocoes_ativas": [],
-        "vendedor": "eduardo@exemplo.com"
-    },
-    {
-        "nome": "É Jordão",
-        "descricao": "Item variado / colecionável (descrição original preservada no título).",
-        "preco": { "valor": 822.8, "moeda": "BRL" },
-        "quantidade_disponivel": 3,
-        "localizacao": "Minas Gerais",
-        "categoria": "colecionáveis",
-        "promocoes_ativas": [],
-        "vendedor": "leonardo@exemplo.com"
-    },
-    {
-        "nome": "Adidas Sambódromo",
-        "descricao": "Tênis / calçado Adidas edição Sambódromo.",
-        "preco": { "valor": 456.4, "moeda": "BRL" },
-        "quantidade_disponivel": 20,
-        "localizacao": "Paraná",
-        "categoria": "vestuário",
-        "promocoes_ativas": [],
-        "vendedor": "Thousand@exemplo.com"
-    },
-    {
-        "nome": "Regata Minnesotta Timberwolves City Edition 2025/26",
-        "descricao": "Regata oficial Timberwolves - edição City 2025/26.",
-        "preco": { "valor": 380, "moeda": "BRL" },
-        "quantidade_disponivel": 15,
-        "localizacao": "Rio Grande do Sul",
-        "categoria": "vestuário",
-        "promocoes_ativas": [],
-        "vendedor": "jondoe@exemplo.com"
-    },
-    {
-        "nome": "Camisa Crontias Total 80",
-        "descricao": "Camisa esportiva - coleção Total 80.",
-        "preco": { "valor": 49, "moeda": "BRL" },
-        "quantidade_disponivel": 50,
-        "localizacao": "Bahia",
-        "categoria": "vestuário",
-        "promocoes_ativas": [],
-        "vendedor": "dudeperson@exemplo.com"
-    },
-    {
-        "nome": "Bola Brazuka copa 2014 (mto raro)",
-        "descricao": "Bola da Copa 2014 - item de colecionador, muito rara.",
-        "preco": { "valor": 900000, "moeda": "BRL" },
-        "quantidade_disponivel": 1,
-        "localizacao": "São Paulo",
-        "categoria": "colecionáveis",
-        "promocoes_ativas": [],
-        "vendedor": "ana@example.com"
-    },
-    {
-        "nome": "A famosa jabulani copa 2010 (mais raro ainda)",
-        "descricao": "Jabulani 2010 - peça de colecionador, extremamente rara.",
-        "preco": { "valor": 10000000, "moeda": "USD" },
-        "quantidade_disponivel": 1,
-        "localizacao": "Rio de Janeiro",
-        "categoria": "colecionáveis",
-        "promocoes_ativas": [],
-        "vendedor": "eduardo@exemplo.com"
-    },
-    {
-        "nome": "Sacola plástica 40x90mm",
-        "descricao": "SACOLA plástica resistente 40x90mm (pacote).",
-        "preco": { "valor": 49, "moeda": "BRL" },
-        "quantidade_disponivel": 200,
-        "localizacao": "Minas Gerais",
-        "categoria": "embalagem",
-        "promocoes_ativas": [],
-        "vendedor": "leonardo@exemplo.com"
-    },
-    {
-        "nome": "Caixa de papelão 250x80x190mm",
-        "descricao": "Caixa de papelão para transporte e armazenamento.",
-        "preco": { "valor": 60, "moeda": "BRL" },
-        "quantidade_disponivel": 120,
-        "localizacao": "Paraná",
-        "categoria": "embalagem",
-        "promocoes_ativas": [],
-        "vendedor": "Thousand@exemplo.com"
-    },
-    {
-        "nome": "Carro pika",
-        "descricao": "Veículo usado - descrição breve preservada no título.",
-        "preco": { "valor": 9000000, "moeda": "BRL" },
-        "quantidade_disponivel": 1,
-        "localizacao": "Rio Grande do Sul",
-        "categoria": "veículos",
-        "promocoes_ativas": [],
-        "vendedor": "jondoe@exemplo.com"
-    },
-    {
-        "nome": "Celta 2012",
-        "descricao": "Celta ano 2012, usado.",
-        "preco": { "valor": 4500, "moeda": "BRL" },
-        "quantidade_disponivel": 1,
-        "localizacao": "Bahia",
-        "categoria": "veículos",
-        "promocoes_ativas": [],
-        "vendedor": "dudeperson@exemplo.com"
-    }
+  {
+    nome: "Fone sem fio",
+    descricao: "Fone bluetooth sem fio, bateria de longa duração.",
+    preco: { valor: 199.9, moeda: "BRL" },
+    quantidade_disponivel: 10,
+    localizacao: "São Paulo",
+    categoria: "eletrônicos",
+    promocoes_ativas: [],
+    vendedor: "ana@example.com"
+  },
+  {
+    nome: "Televisor",
+    descricao: "Televisor LED 55'' com resolução 4K.",
+    preco: { valor: 2500, moeda: "BRL" },
+    quantidade_disponivel: 5,
+    localizacao: "Rio de Janeiro",
+    categoria: "eletrônicos",
+    promocoes_ativas: [],
+    vendedor: "eduardo@exemplo.com"
+  },
+  {
+    nome: "É Jordão",
+    descricao: "Item variado / colecionável (descrição original preservada no título).",
+    preco: { valor: 822.8, moeda: "BRL" },
+    quantidade_disponivel: 3,
+    localizacao: "Minas Gerais",
+    categoria: "colecionáveis",
+    promocoes_ativas: [],
+    vendedor: "leonardo@exemplo.com"
+  },
+  {
+    nome: "Adidas Sambódromo",
+    descricao: "Tênis / calçado Adidas edição Sambódromo.",
+    preco: { valor: 456.4, moeda: "BRL" },
+    quantidade_disponivel: 20,
+    localizacao: "Paraná",
+    categoria: "vestuário",
+    promocoes_ativas: [],
+    vendedor: "Thousand@exemplo.com"
+  },
+  {
+    nome: "Regata Minnesotta Timberwolves City Edition 2025/26",
+    descricao: "Regata oficial Timberwolves - edição City 2025/26.",
+    preco: { valor: 380, moeda: "BRL" },
+    quantidade_disponivel: 15,
+    localizacao: "Rio Grande do Sul",
+    categoria: "vestuário",
+    promocoes_ativas: [],
+    vendedor: "jondoe@exemplo.com"
+  },
+  {
+    nome: "Camisa Crontias Total 80",
+    descricao: "Camisa esportiva - coleção Total 80.",
+    preco: { valor: 49, moeda: "BRL" },
+    quantidade_disponivel: 50,
+    localizacao: "Bahia",
+    categoria: "vestuário",
+    promocoes_ativas: [],
+    vendedor: "dudeperson@exemplo.com"
+  },
+  {
+    nome: "Bola Brazuka copa 2014 (mto raro)",
+    descricao: "Bola da Copa 2014 - item de colecionador, muito rara.",
+    preco: { valor: 900000, moeda: "BRL" },
+    quantidade_disponivel: 1,
+    localizacao: "São Paulo",
+    categoria: "colecionáveis",
+    promocoes_ativas: [],
+    vendedor: "ana@example.com"
+  },
+  {
+    nome: "A famosa jabulani copa 2010 (mais raro ainda)",
+    descricao: "Jabulani 2010 - peça de colecionador, extremamente rara.",
+    preco: { valor: 10000000, moeda: "USD" },
+    quantidade_disponivel: 1,
+    localizacao: "Rio de Janeiro",
+    categoria: "colecionáveis",
+    promocoes_ativas: [],
+    vendedor: "eduardo@exemplo.com"
+  },
+  {
+    nome: "Sacola plástica 40x90mm",
+    descricao: "SACOLA plástica resistente 40x90mm (pacote).",
+    preco: { valor: 49, moeda: "BRL" },
+    quantidade_disponivel: 200,
+    localizacao: "Minas Gerais",
+    categoria: "embalagem",
+    promocoes_ativas: [],
+    vendedor: "leonardo@exemplo.com"
+  },
+  {
+    nome: "Caixa de papelão 250x80x190mm",
+    descricao: "Caixa de papelão para transporte e armazenamento.",
+    preco: { valor: 60, moeda: "BRL" },
+    quantidade_disponivel: 120,
+    localizacao: "Paraná",
+    categoria: "embalagem",
+    promocoes_ativas: [],
+    vendedor: "Thousand@exemplo.com"
+  },
+  {
+    nome: "Carro pika",
+    descricao: "Veículo usado - descrição breve preservada no título.",
+    preco: { valor: 9000000, moeda: "BRL" },
+    quantidade_disponivel: 1,
+    localizacao: "Rio Grande do Sul",
+    categoria: "veículos",
+    promocoes_ativas: [],
+    vendedor: "jondoe@exemplo.com"
+  },
+  {
+    nome: "Celta 2012",
+    descricao: "Celta ano 2012, usado.",
+    preco: { valor: 4500, moeda: "BRL" },
+    quantidade_disponivel: 1,
+    localizacao: "Bahia",
+    categoria: "veículos",
+    promocoes_ativas: [],
+    vendedor: "dudeperson@exemplo.com"
+  }
 ]);
+
+// ORDERS (substituí userId indefinido por ids corretos 1..6)
 db.getCollection('orders').insertMany([
-    {
-        "usuario_id": 1,
-        "usuario_email": "ana@example.com",
-        "items": [{ "product": "Fone sem fio", "qty": 1 }],
-        "total": 199.9,
-        "status": "completo",
-        "data": "2025-10-01T10:15:00.000Z",
-        "pontos_fidelidade_gerados": 19
-    },
-    {
-        "usuario_id": 2,
-        "usuario_email": "eduardo@exemplo.com",
-        "items": [{ "product": "Televisor", "qty": 1 }],
-        "total": 2500,
-        "status": "em trânsito",
-        "data": "2025-09-20T14:30:00.000Z",
-        "pontos_fidelidade_gerados": 250
-    },
-    {
-        "usuario_id": 3,
-        "usuario_email": "leonardo@exemplo.com",
-        "items": [{ "product": "É Jordão", "qty": 2 }],
-        "total": 1645.6,
-        "status": "completo",
-        "data": "2025-10-10T09:00:00.000Z",
-        "pontos_fidelidade_gerados": 164
-    },
-    {
-        "usuario_id": userId,
-        "usuario_email": "Thousand@exemplo.com",
-        "items": [
-            { "product": "Regata Minnesotta Timberwolves City Edition 2025/26", "qty": 1 },
-            { "product": "Camisa Crontias Total 80", "qty": 1 }
-        ],
-        "total": 429,
-        "status": "entregue",
-        "data": "2025-08-15T16:45:00.000Z",
-        "pontos_fidelidade_gerados": 42
-    },
-    {
-        "usuario_id": userId,
-        "usuario_email": "jondoe@exemplo.com",
-        "items": [{ "product": "Caixa de papelão 250x80x190mm", "qty": 5 }],
-        "total": 300,
-        "status": "completo",
-        "data": "2025-10-05T11:20:00.000Z",
-        "pontos_fidelidade_gerados": 30
-    },
-    {
-        "usuario_id": userId,
-        "usuario_email": "dudeperson@exemplo.com",
-        "items": [{ "product": "Celta 2012", "qty": 1 }],
-        "total": 4500,
-        "status": "pendente",
-        "data": "2025-10-25T08:00:00.000Z",
-        "pontos_fidelidade_gerados": 450
-    },
-    {
-        "usuario_id": userId,
-        "usuario_email": "ana@example.com",
-        "items": [{ "product": "Adidas Sambódromo", "qty": 2 }],
-        "total": 912.8,
-        "status": "completo",
-        "data": "2025-09-30T12:00:00.000Z",
-        "pontos_fidelidade_gerados": 91
-    },
-    {
-        "usuario_id": userId,
-        "usuario_email": "eduardo@exemplo.com",
-        "items": [{ "product": "A famosa jabulani copa 2010 (mais raro ainda)", "qty": 1 }],
-        "total": 10000000,
-        "status": "completo",
-        "data": "2025-07-01T07:30:00.000Z",
-        "pontos_fidelidade_gerados": 1000000
-    },
-    {
-        "usuario_id": userId,
-        "usuario_email": "leonardo@exemplo.com",
-        "items": [
-            { "product": "Televisor", "qty": 2 },
-            { "product": "Fone sem fio", "qty": 2 }
-        ],
-        "total": 5399.8,
-        "status": "em trânsito",
-        "data": "2025-10-12T13:10:00.000Z",
-        "pontos_fidelidade_gerados": 539
-    },
-    {
-        "usuario_id": userId,
-        "usuario_email": "Thousand@exemplo.com",
-        "items": [
-            { "product": "Caixa de papelão 250x80x190mm", "qty": 2 },
-            { "product": "Sacola plástica 40x90mm", "qty": 3 }
-        ],
-        "total": 267,
-        "status": "cancelado",
-        "data": "2025-09-01T18:00:00.000Z",
-        "pontos_fidelidade_gerados": 26
-    }
+  {
+    usuario_id: 1,
+    usuario_email: "ana@example.com",
+    items: [{ product: "Fone sem fio", qty: 1 }],
+    total: 199.9,
+    status: "completo",
+    data: new Date("2025-10-01T10:15:00.000Z"),
+    pontos_fidelidade_gerados: 19
+  },
+  {
+    usuario_id: 2,
+    usuario_email: "eduardo@exemplo.com",
+    items: [{ product: "Televisor", qty: 1 }],
+    total: 2500,
+    status: "em trânsito",
+    data: new Date("2025-09-20T14:30:00.000Z"),
+    pontos_fidelidade_gerados: 250
+  },
+  {
+    usuario_id: 3,
+    usuario_email: "leonardo@exemplo.com",
+    items: [{ product: "É Jordão", qty: 2 }],
+    total: 1645.6,
+    status: "completo",
+    data: new Date("2025-10-10T09:00:00.000Z"),
+    pontos_fidelidade_gerados: 164
+  },
+  {
+    usuario_id: 4,
+    usuario_email: "Thousand@exemplo.com",
+    items: [
+      { product: "Regata Minnesotta Timberwolves City Edition 2025/26", qty: 1 },
+      { product: "Camisa Crontias Total 80", qty: 1 }
+    ],
+    total: 429,
+    status: "entregue",
+    data: new Date("2025-08-15T16:45:00.000Z"),
+    pontos_fidelidade_gerados: 42
+  },
+  {
+    usuario_id: 5,
+    usuario_email: "jondoe@exemplo.com",
+    items: [{ product: "Caixa de papelão 250x80x190mm", qty: 5 }],
+    total: 300,
+    status: "completo",
+    data: new Date("2025-10-05T11:20:00.000Z"),
+    pontos_fidelidade_gerados: 30
+  },
+  {
+    usuario_id: 6,
+    usuario_email: "dudeperson@exemplo.com",
+    items: [{ product: "Celta 2012", qty: 1 }],
+    total: 4500,
+    status: "pendente",
+    data: new Date("2025-10-25T08:00:00.000Z"),
+    pontos_fidelidade_gerados: 450
+  },
+  {
+    usuario_id: 1,
+    usuario_email: "ana@example.com",
+    items: [{ product: "Adidas Sambódromo", qty: 2 }],
+    total: 912.8,
+    status: "completo",
+    data: new Date("2025-09-30T12:00:00.000Z"),
+    pontos_fidelidade_gerados: 91
+  },
+  {
+    usuario_id: 2,
+    usuario_email: "eduardo@exemplo.com",
+    items: [{ product: "A famosa jabulani copa 2010 (mais raro ainda)", qty: 1 }],
+    total: 10000000,
+    status: "completo",
+    data: new Date("2025-07-01T07:30:00.000Z"),
+    pontos_fidelidade_gerados: 1000000
+  },
+  {
+    usuario_id: 3,
+    usuario_email: "leonardo@exemplo.com",
+    items: [
+      { product: "Televisor", qty: 2 },
+      { product: "Fone sem fio", qty: 2 }
+    ],
+    total: 5399.8,
+    status: "em trânsito",
+    data: new Date("2025-10-12T13:10:00.000Z"),
+    pontos_fidelidade_gerados: 539
+  },
+  {
+    usuario_id: 4,
+    usuario_email: "Thousand@exemplo.com",
+    items: [
+      { product: "Caixa de papelão 250x80x190mm", qty: 2 },
+      { product: "Sacola plástica 40x90mm", qty: 3 }
+    ],
+    total: 267,
+    status: "cancelado",
+    data: new Date("2025-09-01T18:00:00.000Z"),
+    pontos_fidelidade_gerados: 26
+  }
 ]);
+
+// REVIEWS (substituí userId indefinido por ids válidos e usei Date)
 db.getCollection('reviews').insertMany([
-    {
-        "userId": userId,
-        "productName": "Fone sem fio",
-        "rating": 5,
-        "comment": "Ótimo fone, bateria dura muito!",
-        "date": "2025-10-26"
-    },
-    {
-        "userId": userId,
-        "productName": "Televisor",
-        "rating": 5,
-        "comment": "Imagem perfeita, recomendo muito",
-        "date": "2025-10-25"
-    },
-    {
-        "userId": userId,
-        "productName": "É Jordão",
-        "rating": 4,
-        "comment": "Tênis muito bom, só achei um pouco caro",
-        "date": "2025-10-24"
-    },
-    {
-        "userId": userId,
-        "productName": "Regata Minnesotta Timberwolves City Edition 2025/26",
-        "rating": 5,
-        "comment": "me sinto o ja morant <3",
-        "date": "2025-10-24"
-    },
-    {
-        "userId": userId,
-        "productName": "Camisa Crontias Total 80",
-        "rating": 5,
-        "comment": "nostalgia pura, meu pai torcia para o crontias em 507 d.C, quando vencemos Tenochtitlán",
-        "date": "2025-10-24"
-    },
-    {
-        "userId": userId,
-        "productName": "Caixa de papelão 250x80x190mm",
-        "rating": 4,
-        "comment": "Caixas resistentes, cumprem o prometido",
-        "date": "2025-10-23"
-    },
-    {
-        "userId": userId,
-        "productName": "Celta 2012",
-        "rating": 3,
-        "comment": "Carro econômico, motor bom, só precisa de uma regulagem",
-        "date": "2025-10-22"
-    },
-    {
-        "userId": 7,
-        "productName": "Adidas Sambódromo",
-        "rating": 5,
-        "comment": "Tênis lindo demais, super confortável, faltou uma listra",
-        "date": "2025-10-21"
-    },
-    {
-        "userId": userId,
-        "productName": "A famosa jabulani copa 2010 (mais raro ainda)",
-        "rating": 1,
-        "comment": "a bola era falsa :(",
-        "date": "2025-10-20"
-    },
-    {
-        "userId": userId,
-        "productName": "Televisor",
-        "rating": 2,
-        "comment": "Segunda TV que compro dessa marca, mas infelizmente nenhuma funciona",
-        "date": "2025-10-19"
-    },
-    {
-        "userId": userId,
-        "productName": "Fone sem fio",
-        "rating": 4,
-        "comment": "Muito bom, mas a conexão às vezes falha",
-        "date": "2025-10-19"
-    },
-    {
-        "userId": userId,
-        "productName": "Caixa de papelão 250x80x190mm",
-        "rating": 5,
-        "comment": "Ótimas para organização, muito resistentes",
-        "date": "2025-10-18"
-    },
-    {
-        "userId": userId,
-        "productName": "Sacola plástica 40x90mm",
-        "rating": 4,
-        "comment": "Boas sacolas, resistentes e práticas",
-        "date": "2025-10-18"
-    }
-])
+  {
+    userId: 1,
+    productName: "Fone sem fio",
+    rating: 5,
+    comment: "Ótimo fone, bateria dura muito!",
+    date: new Date("2025-10-26")
+  },
+  {
+    userId: 2,
+    productName: "Televisor",
+    rating: 5,
+    comment: "Imagem perfeita, recomendo muito",
+    date: new Date("2025-10-25")
+  },
+  {
+    userId: 3,
+    productName: "É Jordão",
+    rating: 4,
+    comment: "Tênis muito bom, só achei um pouco caro",
+    date: new Date("2025-10-24")
+  },
+  {
+    userId: 4,
+    productName: "Regata Minnesotta Timberwolves City Edition 2025/26",
+    rating: 5,
+    comment: "me sinto o ja morant <3",
+    date: new Date("2025-10-24")
+  },
+  {
+    userId: 5,
+    productName: "Camisa Crontias Total 80",
+    rating: 5,
+    comment: "nostalgia pura, meu pai torcia para o crontias em 507 d.C, quando vencemos Tenochtitlán",
+    date: new Date("2025-10-24")
+  },
+  {
+    userId: 3,
+    productName: "Caixa de papelão 250x80x190mm",
+    rating: 4,
+    comment: "Caixas resistentes, cumprem o prometido",
+    date: new Date("2025-10-23")
+  },
+  {
+    userId: 6,
+    productName: "Celta 2012",
+    rating: 3,
+    comment: "Carro econômico, motor bom, só precisa de uma regulagem",
+    date: new Date("2025-10-22")
+  },
+  {
+    userId: 4,
+    productName: "Adidas Sambódromo",
+    rating: 5,
+    comment: "Tênis lindo demais, super confortável, faltou uma listra",
+    date: new Date("2025-10-21")
+  },
+  {
+    userId: 2,
+    productName: "A famosa jabulani copa 2010 (mais raro ainda)",
+    rating: 1,
+    comment: "a bola era falsa :(",
+    date: new Date("2025-10-20")
+  },
+  {
+    userId: 2,
+    productName: "Televisor",
+    rating: 2,
+    comment: "Segunda TV que compro dessa marca, mas infelizmente nenhuma funciona",
+    date: new Date("2025-10-19")
+  },
+  {
+    userId: 1,
+    productName: "Fone sem fio",
+    rating: 4,
+    comment: "Muito bom, mas a conexão às vezes falha",
+    date: new Date("2025-10-19")
+  },
+  {
+    userId: 3,
+    productName: "Caixa de papelão 250x80x190mm",
+    rating: 5,
+    comment: "Ótimas para organização, muito resistentes",
+    date: new Date("2025-10-18")
+  },
+  {
+    userId: 3,
+    productName: "Sacola plástica 40x90mm",
+    rating: 4,
+    comment: "Boas sacolas, resistentes e práticas",
+    date: new Date("2025-10-18")
+  }
+]);
 
 // ---------------- 4) Índices recomendados e criação ----------------
 // Justificativa resumo:
