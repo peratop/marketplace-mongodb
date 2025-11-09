@@ -34,21 +34,6 @@ function getNextSequenceValue(sequenceName) {
   return seqValue;
 }
 
-
-
-
-// --------------- 1) Modelo (DER / UML - resumo) -----------------
-// ENTIDADES PRINCIPAIS:
-// Users: { _id, name, email, password, address, location: { type: "Point", coordinates: [lng, lat] }, loyaltyPoints }
-// Products: { _id, sellerId (ref users), name, description, price, quantity, location, categoryId, promotions: [ {discount, start, end} ] }
-// Categories: { _id, name, parentId (self-ref) }
-// Transactions: { _id, buyerId, sellerId, items: [ {productId, qty, priceAtPurchase} ], status, date, loyaltyPointsEarned }
-// Reviews: { _id, productId, buyerId, sellerId, rating, text, date, response: { sellerId, text, date } }
-// Decisões de modelagem:
-// - Users e Products em collections separadas. Seller referenciado por ObjectId (higly reused).
-// - Reviews: armazenar por coleção própria (referência para product + buyer). Pode embutir resposta do vendedor.
-// - Transactions: coleção própria; items array (embed) porque pertence à transação.
-
 // ---------------- 2) Criação das collections com validação JSON Schema ----------------
 
 // Drop para recomeçar durante testes
@@ -58,7 +43,6 @@ db.categories.drop();
 db.transactions.drop();
 db.reviews.drop();
 
-// Users
 // Users
 db.createCollection('users', {
   validator: {
@@ -192,12 +176,13 @@ db.createCollection('reviews', {
 // ---------------- Inserts corrigidos ----------------
 
 // USERS (IDs numéricos gerados via contador)
+// senha hasheada com bcrypt
 db.getCollection('users').insertMany([
   {
     _id: getNextSequenceValue("userId"),
     nome: "Ana Silva",
     email: "ana@example.com",
-    senha: "REPLACE_WITH_HASHED_PASSWORD",
+    senha: "$2b$10$Qj8u9QyPH3vP.yoA9l/qwOFUG5CNlJxHuyF1Svsf3vZh5/1QmCPWe",
     endereco: {
       rua: "Rua das Flores",
       numero: "123",
@@ -213,7 +198,7 @@ db.getCollection('users').insertMany([
     _id: getNextSequenceValue("userId"),
     nome: "Eduardo Erthal",
     email: "eduardo@exemplo.com",
-    senha: "REPLACE_WITH_HASHED_PASSWORD",
+    senha: "$2b$10$9QepDZZx4I3Lk7q/ONi6aOXxXcfhBbe6O0rkDPSQ7Pnd.2Ty6E9Ca",
     endereco: {
       rua: "Avenida Central",
       numero: "500",
@@ -229,7 +214,7 @@ db.getCollection('users').insertMany([
     _id: getNextSequenceValue("userId"),
     nome: "Leo Pedreiro",
     email: "leonardo@exemplo.com",
-    senha: "REPLACE_WITH_HASHED_PASSWORD",
+    senha: "$2b$10$N7mD0xW52bV/npgpVy9Zpe8CBPiIYfDQpd07zRokjJwyzT8S0z0.q",
     endereco: {
       rua: "Travessa do Sol",
       numero: "45",
@@ -245,7 +230,7 @@ db.getCollection('users').insertMany([
     _id: getNextSequenceValue("userId"),
     nome: "Mil Enas",
     email: "Thousand@exemplo.com",
-    senha: "REPLACE_WITH_HASHED_PASSWORD",
+    senha: "$2b$10$hR9ReEnR4PR71YtCOxjVquMSu9UnjQfwDF2Ux4NQZp0jKZbRHysu2",
     endereco: {
       rua: "Rua do Mercado",
       numero: "10",
@@ -261,7 +246,7 @@ db.getCollection('users').insertMany([
     _id: getNextSequenceValue("userId"),
     nome: "Jon Doe",
     email: "jondoe@exemplo.com",
-    senha: "REPLACE_WITH_HASHED_PASSWORD",
+    senha: "$2b$10$7BArC3RcmcBohHjD2QHdHuN9oZmiCEbMRRj70PMdQURuG6LqHhFce",
     endereco: {
       rua: "Alameda Verde",
       numero: "77",
@@ -277,7 +262,7 @@ db.getCollection('users').insertMany([
     _id: getNextSequenceValue("userId"),
     nome: "Dude Person",
     email: "dudeperson@exemplo.com",
-    senha: "REPLACE_WITH_HASHED_PASSWORD",
+    senha: "$2b$10$y6q5oAOc4as5XyKmDG1dE.7nEQfTf4rSEc1tOlYb8gTMyBhy1n.8G",
     endereco: {
       rua: "Praça do Comércio",
       numero: "1",
@@ -290,6 +275,7 @@ db.getCollection('users').insertMany([
     pontos_fidelidade: 0
   }
 ]);
+
 
 // PRODUCTS (mantive campos em português conforme seus inserts)
 db.getCollection('products').insertMany([
@@ -658,7 +644,6 @@ function createPurchase(buyerId, productId, qty){
   db.users.updateOne({_id: buyerId}, {$inc: {loyaltyPoints: loyalty}});
   return trans.insertedId;
 }
-// Exemplo de uso (comentado pois usa variáveis criadas acima):
 // const newTransId = createPurchase(userRes[1], prodRes[4], 1);
 
 // 5.4 Atualizar quantidade de produto após uma compra (separado):
@@ -699,7 +684,6 @@ const salesBySeller = db.transactions.aggregate([
 print('Vendas por vendedor:', JSON.stringify(salesBySeller, null, 2));
 
 // ---------------- 7) Sprint 2: Novos requisitos e migrações ----------------
-// Requisitos: promoções temporárias (já previsto), pontos fidelidade (users.loyaltyPoints), respostas a avaliações (reviews.response), geolocalização (already added)
 
 // 7.1 Adicionar um campo de promoções a um produto (exemplo de update)
 // inserir promoção num produto
@@ -711,7 +695,7 @@ db.users.updateMany({ loyaltyPoints: { $exists: false } }, { $set: { loyaltyPoin
 // 7.3 Resposta a review (vendedor responde)
 db.reviews.updateOne({_id: db.reviews.findOne({productId: prodRes[0]})._id}, { $set: { response: { sellerId: userRes[0], text: 'Obrigado pelo feedback!', date: new Date() } } });
 
-// 7.4 Geolocation: já adicionamos location nos users e products. Criar índice 2dsphere (feito acima)
+// 7.4 Geolocation: já adicionamos location nos users e products
 
 // ---------------- 8) Consultas Avançadas (geospatial + análises) ----------------
 
@@ -743,7 +727,6 @@ const avgDistance = db.transactions.aggregate([
 print('Distância média (m):', JSON.stringify(avgDistance, null, 2));
 
 // 8.3 Encontrar a categoria de produto mais vendida em uma área geográfica específica
-// Defina uma bbox ou use $geoWithin com um circle (padrões podem variar). Exemplo usando $geoWithin com $centerSphere (radius em radianos)
 function mostSoldCategoryInArea(centerLng, centerLat, radiusMeters){
   const earthRadius = 6378137; // metros
   const radiusInRadians = radiusMeters / earthRadius;
@@ -786,14 +769,3 @@ printjson(db.products.find({ categoryId: catIds[0] }).explain('executionStats'))
 // Observação: testar em ambiente simulado e medir antes de migrar.
 
 // ---------------- FIM ----------------
-
-// Recomendações para apresentação:
-// - Mostre explain() antes/depois de criar índices
-// - Demonstre 1 exemplo de migração de dados (backfill) e seu script
-// - Prepare gráficos (opcional) com resultados de tempo de execução das queries
-
-print('Script finalizado. Revise outputs acima no Playground.');
-
-
-
-
