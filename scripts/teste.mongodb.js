@@ -41,13 +41,16 @@ function getNextSequenceValue(sequenceName) {
 
 
 
+// ---------------- 2) Criação das collections com validação JSON Schema ----------------
+
 // Users
 db.createCollection('users', {
   validator: {
     $jsonSchema: {
       bsonType: 'object',
-      required: ['nome', 'email', 'senha'],
+      required: ['_id', 'nome', 'email', 'senha'],
       properties: {
+        _id: { bsonType: 'int' },
         nome: { bsonType: 'string' },
         email: { bsonType: 'string', pattern: '^.+@.+\\..+$' },
         senha: { bsonType: 'string' },
@@ -65,7 +68,7 @@ db.createCollection('users', {
         localizacao_geografica: {
           bsonType: 'object',
           properties: {
-            type: {  bsonType: 'string', enum: ['Point'] },
+            type: { bsonType: 'string', enum: ['Point'] },
             coordinates: { bsonType: 'array', minItems: 2, maxItems: 2 }
           }
         },
@@ -80,8 +83,12 @@ db.createCollection('categories', {
   validator: {
     $jsonSchema: {
       bsonType: 'object',
-      required: ['name'],
-      properties: { name: { bsonType: 'string' }, parentId: { bsonType: 'objectId' } }
+      required: ['_id', 'name'],
+      properties: {
+        _id: { bsonType: 'objectId' }, // mantido como ObjectId (padrão)
+        name: { bsonType: 'string' },
+        parentId: { bsonType: 'objectId' }
+      }
     }
   }
 });
@@ -91,8 +98,9 @@ db.createCollection('products', {
   validator: {
     $jsonSchema: {
       bsonType: 'object',
-      required: ['nome', 'preco', 'quantidade_disponivel', 'categoria', 'vendedor'],
+      required: ['_id', 'nome', 'preco', 'quantidade_disponivel', 'categoria', 'vendedor'],
       properties: {
+        _id: { bsonType: 'int' },
         nome: { bsonType: 'string' },
         descricao: { bsonType: 'string' },
         preco: {
@@ -140,8 +148,9 @@ db.createCollection('orders', {
   validator: {
     $jsonSchema: {
       bsonType: 'object',
-      required: ['usuario_id', 'usuario_email', 'items', 'total', 'status', 'data'],
+      required: ['_id', 'usuario_id', 'usuario_email', 'items', 'total', 'status', 'data'],
       properties: {
+        _id: { bsonType: 'int' },
         usuario_id: { bsonType: 'int' },
         usuario_email: { bsonType: 'string', pattern: '^.+@.+\\..+$' },
         items: {
@@ -170,8 +179,9 @@ db.createCollection('reviews', {
   validator: {
     $jsonSchema: {
       bsonType: 'object',
-      required: ['userId', 'productName', 'rating', 'comment', 'date'],
+      required: ['_id', 'userId', 'productName', 'rating', 'comment', 'date'],
       properties: {
+        _id: { bsonType: 'int' },
         userId: { bsonType: 'int' },
         productName: { bsonType: 'string' },
         rating: { bsonType: 'int', minimum: 1, maximum: 5 },
@@ -181,7 +191,6 @@ db.createCollection('reviews', {
     }
   }
 });
-
 // ---------------- 3) Inserts ----------------
 
 // USERS (IDs numéricos gerados via contador)
@@ -294,7 +303,6 @@ db.products.insertMany([
     descricao: "Fone bluetooth sem fio, bateria de longa duração.",
     preco: { valor: 199.9, moeda: "BRL" },
     quantidade_disponivel: 10,
-    localizacao: "São Paulo",
     localizacao_geografica: { type: "Point", coordinates: [-46.633309, -23.55052] },
     categoria: "eletrônicos",
     promocoes_ativas: [],
@@ -306,7 +314,6 @@ db.products.insertMany([
     descricao: "Televisor LED 55'' com resolução 4K.",
     preco: { valor: 2500, moeda: "BRL" },
     quantidade_disponivel: 5,
-    localizacao: "Rio de Janeiro",
     localizacao_geografica: { type: "Point", coordinates: [-43.2093727, -22.9110137] },
     categoria: "eletrônicos",
     promocoes_ativas: [],
@@ -318,7 +325,6 @@ db.products.insertMany([
     descricao: "Item variado / colecionável (descrição original preservada no título).",
     preco: { valor: 822.8, moeda: "BRL" },
     quantidade_disponivel: 3,
-    localizacao: "Minas Gerais",
     localizacao_geografica: { type: "Point", coordinates: [-44.55503, -19.9333] },
     categoria: "colecionáveis",
     promocoes_ativas: [],
@@ -330,7 +336,6 @@ db.products.insertMany([
     descricao: "Tênis / calçado Adidas edição Sambódromo.",
     preco: { valor: 456.4, moeda: "BRL" },
     quantidade_disponivel: 20,
-    localizacao: "Paraná",
     localizacao_geografica: { type: "Point", coordinates: [-49.264587, -25.428954] },
     categoria: "vestuário",
     promocoes_ativas: [],
@@ -342,7 +347,6 @@ db.products.insertMany([
     descricao: "Regata oficial Timberwolves - edição City 2025/26.",
     preco: { valor: 380, moeda: "BRL" },
     quantidade_disponivel: 15,
-    localizacao: "Rio Grande do Sul",
     localizacao_geografica: { type: "Point", coordinates: [-51.230, -30.033] },
     categoria: "vestuário",
     promocoes_ativas: [],
@@ -354,7 +358,6 @@ db.products.insertMany([
     descricao: "Camisa esportiva - coleção Total 80.",
     preco: { valor: 49, moeda: "BRL" },
     quantidade_disponivel: 50,
-    localizacao: "Bahia",
     localizacao_geografica: { type: "Point", coordinates: [-38.512382, -12.9714] },
     categoria: "vestuário",
     promocoes_ativas: [],
@@ -366,7 +369,6 @@ db.products.insertMany([
     descricao: "Bola da Copa 2014 - item de colecionador, muito rara.",
     preco: { valor: 900000, moeda: "BRL" },
     quantidade_disponivel: 1,
-    localizacao: "São Paulo",
     localizacao_geografica: { type: "Point", coordinates: [-46.633309, -23.55052] },
     categoria: "colecionáveis",
     promocoes_ativas: [],
@@ -378,7 +380,6 @@ db.products.insertMany([
     descricao: "Jabulani 2010 - peça de colecionador, extremamente rara.",
     preco: { valor: 10000000, moeda: "USD" },
     quantidade_disponivel: 1,
-    localizacao: "Rio de Janeiro",
     localizacao_geografica: { type: "Point", coordinates: [-43.2093727, -22.9110137] },
     categoria: "colecionáveis",
     promocoes_ativas: [],
@@ -390,7 +391,6 @@ db.products.insertMany([
     descricao: "SACOLA plástica resistente 40x90mm (pacote).",
     preco: { valor: 49, moeda: "BRL" },
     quantidade_disponivel: 200,
-    localizacao: "Minas Gerais",
     localizacao_geografica: { type: "Point", coordinates: [-44.55503, -19.9333] },
     categoria: "embalagem",
     promocoes_ativas: [],
@@ -402,7 +402,6 @@ db.products.insertMany([
     descricao: "Caixa de papelão para transporte e armazenamento.",
     preco: { valor: 60, moeda: "BRL" },
     quantidade_disponivel: 120,
-    localizacao: "Paraná",
     localizacao_geografica: { type: "Point", coordinates: [-49.264587, -25.428954] },
     categoria: "embalagem",
     promocoes_ativas: [],
@@ -414,7 +413,6 @@ db.products.insertMany([
     descricao: "Veículo usado - descrição breve preservada no título.",
     preco: { valor: 9000000, moeda: "BRL" },
     quantidade_disponivel: 1,
-    localizacao: "Rio Grande do Sul",
     localizacao_geografica: { type: "Point", coordinates: [-51.230, -30.033] },
     categoria: "veículos",
     promocoes_ativas: [],
@@ -426,7 +424,6 @@ db.products.insertMany([
     descricao: "Celta ano 2012, usado.",
     preco: { valor: 4500, moeda: "BRL" },
     quantidade_disponivel: 1,
-    localizacao: "Bahia",
     localizacao_geografica: { type: "Point", coordinates: [-38.512382, -12.9714] },
     categoria: "veículos",
     promocoes_ativas: [],
