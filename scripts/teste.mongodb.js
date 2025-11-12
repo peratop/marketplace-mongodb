@@ -9,39 +9,37 @@
 // For more documentation on playgrounds please refer to
 // https://www.mongodb.com/docs/mongodb-vscode/playgrounds/
 
-// Select the database to use.
+// Seleciona o banco de dados
 use('marketplace');
 
-//Auto increment
-db.counters.updateOne(
-  { _id: "userId" },
-  { $setOnInsert: { seq: 0 } },
-  { upsert: true }
-);
+// Drop nas coleções para recomeçar os testes
+db.users.drop();
+db.products.drop();
+db.categories.drop();
+db.orders.drop();
+db.reviews.drop();
+
+db.counters.drop();
+
+db.counters.insertMany([
+  { _id: "userId", seq: 0 },
+  { _id: "productId", seq: 0 },
+  { _id: "ordersId", seq: 0 },
+  { _id: "reviewId", seq: 0 }
+]);
 
 function getNextSequenceValue(sequenceName) {
-  const result = db.counters.findOneAndUpdate(
+  const sequenceDocument = db.counters.findOneAndUpdate(
     { _id: sequenceName },
     { $inc: { seq: 1 } },
-    { returnNewDocument: true, upsert: true }
+    { returnDocument: "after" }
   );
-
-  if (!result) {
-    throw new Error("Erro ao gerar sequência: contador não encontrado.");
-  }
-
-  const seqValue = result.value ? result.value.seq : result.seq;
-  return seqValue;
+  return sequenceDocument.seq;
 }
 
 // ---------------- 2) Criação das collections com validação JSON Schema ----------------
 
-// Drop para recomeçar durante testes
-db.users.drop();
-db.products.drop();
-db.categories.drop();
-db.transactions.drop();
-db.reviews.drop();
+
 
 // Users
 db.createCollection('users', {
@@ -67,7 +65,7 @@ db.createCollection('users', {
         localizacao_geografica: {
           bsonType: 'object',
           properties: {
-            type: { enum: ['Point'] },
+            type: {  bsonType: 'string', enum: ['Point'] },
             coordinates: { bsonType: 'array', minItems: 2, maxItems: 2 }
           }
         },
@@ -77,7 +75,7 @@ db.createCollection('users', {
   }
 });
 
-// Categories (mantive simples)
+// Categories 
 db.createCollection('categories', {
   validator: {
     $jsonSchema: {
@@ -88,7 +86,7 @@ db.createCollection('categories', {
   }
 });
 
-// Products (schema compatível com os inserts em português)
+// Products 
 db.createCollection('products', {
   validator: {
     $jsonSchema: {
@@ -106,7 +104,6 @@ db.createCollection('products', {
           }
         },
         quantidade_disponivel: { bsonType: 'int' },
-        localizacao: { bsonType: 'string' },
         categoria: { bsonType: 'string' },
         promocoes_ativas: {
           bsonType: 'array',
@@ -120,13 +117,25 @@ db.createCollection('products', {
             }
           }
         },
-        vendedor: { bsonType: 'string', pattern: '^.+@.+\\..+$' } // email do vendedor conforme inserts
+        vendedor: { bsonType: 'string', pattern: '^.+@.+\\..+$' },
+        localizacao_geografica: {
+          bsonType: 'object',
+          required: ['type', 'coordinates'],
+          properties: {
+            type: { enum: ['Point'] },
+            coordinates: {
+              bsonType: 'array',
+              items: [{ bsonType: 'double' }, { bsonType: 'double' }],
+              description: '[longitude, latitude]'
+            }
+          }
+        }
       }
     }
   }
 });
 
-// Orders (substitui a antiga transactions para manter compatibilidade com os inserts existentes)
+// Orders 
 db.createCollection('orders', {
   validator: {
     $jsonSchema: {
@@ -156,7 +165,7 @@ db.createCollection('orders', {
   }
 });
 
-// Reviews (compatível com os inserts)
+// Reviews
 db.createCollection('reviews', {
   validator: {
     $jsonSchema: {
@@ -173,7 +182,7 @@ db.createCollection('reviews', {
   }
 });
 
-// ---------------- Inserts corrigidos ----------------
+// ---------------- 3) Inserts ----------------
 
 // USERS (IDs numéricos gerados via contador)
 // senha hasheada com bcrypt
@@ -277,133 +286,159 @@ db.getCollection('users').insertMany([
 ]);
 
 
-// PRODUCTS (mantive campos em português conforme seus inserts)
-db.getCollection('products').insertMany([
+// PRODUCTS
+db.products.insertMany([
   {
+    _id: getNextSequenceValue("productId"),
     nome: "Fone sem fio",
     descricao: "Fone bluetooth sem fio, bateria de longa duração.",
     preco: { valor: 199.9, moeda: "BRL" },
     quantidade_disponivel: 10,
     localizacao: "São Paulo",
+    localizacao_geografica: { type: "Point", coordinates: [-46.633309, -23.55052] },
     categoria: "eletrônicos",
     promocoes_ativas: [],
     vendedor: "ana@example.com"
   },
   {
+    _id: getNextSequenceValue("productId"),
     nome: "Televisor",
     descricao: "Televisor LED 55'' com resolução 4K.",
     preco: { valor: 2500, moeda: "BRL" },
     quantidade_disponivel: 5,
     localizacao: "Rio de Janeiro",
+    localizacao_geografica: { type: "Point", coordinates: [-43.2093727, -22.9110137] },
     categoria: "eletrônicos",
     promocoes_ativas: [],
     vendedor: "eduardo@exemplo.com"
   },
   {
+    _id: getNextSequenceValue("productId"),
     nome: "É Jordão",
     descricao: "Item variado / colecionável (descrição original preservada no título).",
     preco: { valor: 822.8, moeda: "BRL" },
     quantidade_disponivel: 3,
     localizacao: "Minas Gerais",
+    localizacao_geografica: { type: "Point", coordinates: [-44.55503, -19.9333] },
     categoria: "colecionáveis",
     promocoes_ativas: [],
     vendedor: "leonardo@exemplo.com"
   },
   {
+    _id: getNextSequenceValue("productId"),
     nome: "Adidas Sambódromo",
     descricao: "Tênis / calçado Adidas edição Sambódromo.",
     preco: { valor: 456.4, moeda: "BRL" },
     quantidade_disponivel: 20,
     localizacao: "Paraná",
+    localizacao_geografica: { type: "Point", coordinates: [-49.264587, -25.428954] },
     categoria: "vestuário",
     promocoes_ativas: [],
     vendedor: "Thousand@exemplo.com"
   },
   {
+    _id: getNextSequenceValue("productId"),
     nome: "Regata Minnesotta Timberwolves City Edition 2025/26",
     descricao: "Regata oficial Timberwolves - edição City 2025/26.",
     preco: { valor: 380, moeda: "BRL" },
     quantidade_disponivel: 15,
     localizacao: "Rio Grande do Sul",
+    localizacao_geografica: { type: "Point", coordinates: [-51.230, -30.033] },
     categoria: "vestuário",
     promocoes_ativas: [],
     vendedor: "jondoe@exemplo.com"
   },
   {
+    _id: getNextSequenceValue("productId"),
     nome: "Camisa Crontias Total 80",
     descricao: "Camisa esportiva - coleção Total 80.",
     preco: { valor: 49, moeda: "BRL" },
     quantidade_disponivel: 50,
     localizacao: "Bahia",
+    localizacao_geografica: { type: "Point", coordinates: [-38.512382, -12.9714] },
     categoria: "vestuário",
     promocoes_ativas: [],
     vendedor: "dudeperson@exemplo.com"
   },
   {
+    _id: getNextSequenceValue("productId"),
     nome: "Bola Brazuka copa 2014 (mto raro)",
     descricao: "Bola da Copa 2014 - item de colecionador, muito rara.",
     preco: { valor: 900000, moeda: "BRL" },
     quantidade_disponivel: 1,
     localizacao: "São Paulo",
+    localizacao_geografica: { type: "Point", coordinates: [-46.633309, -23.55052] },
     categoria: "colecionáveis",
     promocoes_ativas: [],
     vendedor: "ana@example.com"
   },
   {
+    _id: getNextSequenceValue("productId"),
     nome: "A famosa jabulani copa 2010 (mais raro ainda)",
     descricao: "Jabulani 2010 - peça de colecionador, extremamente rara.",
     preco: { valor: 10000000, moeda: "USD" },
     quantidade_disponivel: 1,
     localizacao: "Rio de Janeiro",
+    localizacao_geografica: { type: "Point", coordinates: [-43.2093727, -22.9110137] },
     categoria: "colecionáveis",
     promocoes_ativas: [],
     vendedor: "eduardo@exemplo.com"
   },
   {
+    _id: getNextSequenceValue("productId"),
     nome: "Sacola plástica 40x90mm",
     descricao: "SACOLA plástica resistente 40x90mm (pacote).",
     preco: { valor: 49, moeda: "BRL" },
     quantidade_disponivel: 200,
     localizacao: "Minas Gerais",
+    localizacao_geografica: { type: "Point", coordinates: [-44.55503, -19.9333] },
     categoria: "embalagem",
     promocoes_ativas: [],
     vendedor: "leonardo@exemplo.com"
   },
   {
+    _id: getNextSequenceValue("productId"),
     nome: "Caixa de papelão 250x80x190mm",
     descricao: "Caixa de papelão para transporte e armazenamento.",
     preco: { valor: 60, moeda: "BRL" },
     quantidade_disponivel: 120,
     localizacao: "Paraná",
+    localizacao_geografica: { type: "Point", coordinates: [-49.264587, -25.428954] },
     categoria: "embalagem",
     promocoes_ativas: [],
     vendedor: "Thousand@exemplo.com"
   },
   {
+    _id: getNextSequenceValue("productId"),
     nome: "Carro pika",
     descricao: "Veículo usado - descrição breve preservada no título.",
     preco: { valor: 9000000, moeda: "BRL" },
     quantidade_disponivel: 1,
     localizacao: "Rio Grande do Sul",
+    localizacao_geografica: { type: "Point", coordinates: [-51.230, -30.033] },
     categoria: "veículos",
     promocoes_ativas: [],
     vendedor: "jondoe@exemplo.com"
   },
   {
+    _id: getNextSequenceValue("productId"),
     nome: "Celta 2012",
     descricao: "Celta ano 2012, usado.",
     preco: { valor: 4500, moeda: "BRL" },
     quantidade_disponivel: 1,
     localizacao: "Bahia",
+    localizacao_geografica: { type: "Point", coordinates: [-38.512382, -12.9714] },
     categoria: "veículos",
     promocoes_ativas: [],
     vendedor: "dudeperson@exemplo.com"
   }
 ]);
 
-// ORDERS (substituí userId indefinido por ids corretos 1..6)
+
+// ORDERS
 db.getCollection('orders').insertMany([
   {
+    _id: getNextSequenceValue("ordersId"),
     usuario_id: 1,
     usuario_email: "ana@example.com",
     items: [{ product: "Fone sem fio", qty: 1 }],
@@ -413,6 +448,7 @@ db.getCollection('orders').insertMany([
     pontos_fidelidade_gerados: 19
   },
   {
+    _id: getNextSequenceValue("ordersId"),
     usuario_id: 2,
     usuario_email: "eduardo@exemplo.com",
     items: [{ product: "Televisor", qty: 1 }],
@@ -422,6 +458,7 @@ db.getCollection('orders').insertMany([
     pontos_fidelidade_gerados: 250
   },
   {
+    _id: getNextSequenceValue("ordersId"),
     usuario_id: 3,
     usuario_email: "leonardo@exemplo.com",
     items: [{ product: "É Jordão", qty: 2 }],
@@ -431,6 +468,7 @@ db.getCollection('orders').insertMany([
     pontos_fidelidade_gerados: 164
   },
   {
+    _id: getNextSequenceValue("ordersId"),
     usuario_id: 4,
     usuario_email: "Thousand@exemplo.com",
     items: [
@@ -443,6 +481,7 @@ db.getCollection('orders').insertMany([
     pontos_fidelidade_gerados: 42
   },
   {
+    _id: getNextSequenceValue("ordersId"),
     usuario_id: 5,
     usuario_email: "jondoe@exemplo.com",
     items: [{ product: "Caixa de papelão 250x80x190mm", qty: 5 }],
@@ -452,6 +491,7 @@ db.getCollection('orders').insertMany([
     pontos_fidelidade_gerados: 30
   },
   {
+    _id: getNextSequenceValue("ordersId"),
     usuario_id: 6,
     usuario_email: "dudeperson@exemplo.com",
     items: [{ product: "Celta 2012", qty: 1 }],
@@ -461,6 +501,7 @@ db.getCollection('orders').insertMany([
     pontos_fidelidade_gerados: 450
   },
   {
+    _id: getNextSequenceValue("ordersId"),
     usuario_id: 1,
     usuario_email: "ana@example.com",
     items: [{ product: "Adidas Sambódromo", qty: 2 }],
@@ -470,6 +511,7 @@ db.getCollection('orders').insertMany([
     pontos_fidelidade_gerados: 91
   },
   {
+    _id: getNextSequenceValue("ordersId"),
     usuario_id: 2,
     usuario_email: "eduardo@exemplo.com",
     items: [{ product: "A famosa jabulani copa 2010 (mais raro ainda)", qty: 1 }],
@@ -479,6 +521,7 @@ db.getCollection('orders').insertMany([
     pontos_fidelidade_gerados: 1000000
   },
   {
+    _id: getNextSequenceValue("ordersId"),
     usuario_id: 3,
     usuario_email: "leonardo@exemplo.com",
     items: [
@@ -491,6 +534,7 @@ db.getCollection('orders').insertMany([
     pontos_fidelidade_gerados: 539
   },
   {
+    _id: getNextSequenceValue("ordersId"),
     usuario_id: 4,
     usuario_email: "Thousand@exemplo.com",
     items: [
@@ -504,9 +548,10 @@ db.getCollection('orders').insertMany([
   }
 ]);
 
-// REVIEWS (substituí userId indefinido por ids válidos e usei Date)
+// REVIEWS 
 db.getCollection('reviews').insertMany([
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 1,
     productName: "Fone sem fio",
     rating: 5,
@@ -514,6 +559,7 @@ db.getCollection('reviews').insertMany([
     date: new Date("2025-10-26")
   },
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 2,
     productName: "Televisor",
     rating: 5,
@@ -521,6 +567,7 @@ db.getCollection('reviews').insertMany([
     date: new Date("2025-10-25")
   },
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 3,
     productName: "É Jordão",
     rating: 4,
@@ -528,6 +575,7 @@ db.getCollection('reviews').insertMany([
     date: new Date("2025-10-24")
   },
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 4,
     productName: "Regata Minnesotta Timberwolves City Edition 2025/26",
     rating: 5,
@@ -535,6 +583,7 @@ db.getCollection('reviews').insertMany([
     date: new Date("2025-10-24")
   },
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 5,
     productName: "Camisa Crontias Total 80",
     rating: 5,
@@ -542,6 +591,7 @@ db.getCollection('reviews').insertMany([
     date: new Date("2025-10-24")
   },
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 3,
     productName: "Caixa de papelão 250x80x190mm",
     rating: 4,
@@ -549,6 +599,7 @@ db.getCollection('reviews').insertMany([
     date: new Date("2025-10-23")
   },
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 6,
     productName: "Celta 2012",
     rating: 3,
@@ -556,6 +607,7 @@ db.getCollection('reviews').insertMany([
     date: new Date("2025-10-22")
   },
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 4,
     productName: "Adidas Sambódromo",
     rating: 5,
@@ -563,6 +615,7 @@ db.getCollection('reviews').insertMany([
     date: new Date("2025-10-21")
   },
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 2,
     productName: "A famosa jabulani copa 2010 (mais raro ainda)",
     rating: 1,
@@ -570,6 +623,7 @@ db.getCollection('reviews').insertMany([
     date: new Date("2025-10-20")
   },
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 2,
     productName: "Televisor",
     rating: 2,
@@ -577,6 +631,7 @@ db.getCollection('reviews').insertMany([
     date: new Date("2025-10-19")
   },
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 1,
     productName: "Fone sem fio",
     rating: 4,
@@ -584,6 +639,7 @@ db.getCollection('reviews').insertMany([
     date: new Date("2025-10-19")
   },
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 3,
     productName: "Caixa de papelão 250x80x190mm",
     rating: 5,
@@ -591,6 +647,7 @@ db.getCollection('reviews').insertMany([
     date: new Date("2025-10-18")
   },
   {
+    _id: getNextSequenceValue("reviewId"),
     userId: 3,
     productName: "Sacola plástica 40x90mm",
     rating: 4,
@@ -599,7 +656,7 @@ db.getCollection('reviews').insertMany([
   }
 ]);
 
-// ---------------- 4) Índices recomendados e criação ----------------
+// ---------------- 4) Índices ----------------
 // Justificativa resumo:
 // - products: index em categoryId (buscas por categoria) + text index em name/description se pesquisa full-text
 // - products: geospatial 2dsphere em location (para buscas por proximidade)
@@ -608,164 +665,476 @@ db.getCollection('reviews').insertMany([
 // - users: index em email (login único)
 
 // Criação de índices:
-db.products.createIndex({ categoryId: 1 });
-db.products.createIndex({ name: 'text', description: 'text' });
-db.products.createIndex({ location: '2dsphere' });
+// Produtos
+db.products.createIndex({ categoria: 1 }); // Busca por categoria 
+db.products.createIndex({ nome: 'text', descricao: 'text' }); // Pesquisa textual
+db.products.createIndex({ "localizacao_geografica": "2dsphere" }); // Busca por localização textual (se quiser geoespacial: usar 2dsphere em localizacao_geografica)
 
-db.transactions.createIndex({ sellerId: 1, date: -1 });
-db.transactions.createIndex({ buyerId: 1, date: -1 });
+// Pedidos (equivalente à transactions)
+db.orders.createIndex({ usuario_id: 1, data: -1 }); // Consultas por usuário e data (histórico)
+db.orders.createIndex({ status: 1 }); // Filtros por status (pendente, entregue, etc)
 
-db.reviews.createIndex({ productId: 1 });
-db.users.createIndex({ email: 1 }, { unique: true });
+// Avaliações
+db.reviews.createIndex({ productName: 1 }); // Buscas por produto avaliado
+
+// Usuários
+db.users.createIndex({ email: 1 }, { unique: true }); // Login rápido e seguro
+db.users.createIndex({ localizacao_geografica: "2dsphere" });
+
 
 // ---------------- 5) Consultas Básicas ----------------
 
-// 5.1 Encontrar todos os produtos de uma categoria específica (use _id de categoria)
-// exemplo: produtos da categoria 'Eletrônicos'
-const eletrônicos = db.products.find({ categoryId: catIds[0] }).toArray();
-print('Produtos Eletrônicos:', JSON.stringify(eletrônicos, null, 2));
+// 1) Encontrar todos os produtos de uma categoria específica
+const eletronicos = db.products.find({ categoria: "eletrônicos" }).toArray();
+print("Produtos Eletrônicos:", JSON.stringify(eletronicos, null, 2));
 
-// 5.2 Buscar todas as avaliações de um produto
-const productReviews = db.reviews.find({ productId: prodRes[0] }).toArray();
-print('Avaliações do produto:', JSON.stringify(productReviews, null, 2));
+// 2) Buscar todas as avaliações de um produto
+const avaliacoesFone = db.reviews.find({ productName: "Fone sem fio" }).toArray();
+print("Avaliações de Fone sem fio:", JSON.stringify(avaliacoesFone, null, 2));
 
-// 5.3 Criar uma nova transação (compra) -> também atualizar estoque e pontos (transação lógica: use session/transaction em replica set)
-// Aqui um exemplo simples sem transação (no Playground, para replicaset usar session.startTransaction())
-function createPurchase(buyerId, productId, qty){
-  const product = db.products.findOne({_id: productId});
-  if(!product || product.quantity < qty) throw 'Estoque insuficiente';
-  const sellerId = product.sellerId;
-  const price = product.price;
-  const loyalty = Math.floor(price * qty * 0.01); // 1% como exemplo
-  const trans = db.transactions.insertOne({ buyerId, sellerId, items:[{productId, qty, priceAtPurchase: price}], status:'PAID', date:new Date(), loyaltyPointsEarned: loyalty });
-  // atualizar estoque
-  db.products.updateOne({_id: productId}, {$inc: {quantity: -qty}});
-  // creditar pontos no usuário comprador
-  db.users.updateOne({_id: buyerId}, {$inc: {loyaltyPoints: loyalty}});
-  return trans.insertedId;
+// 3) Criar uma nova compra (transação)
+function criarCompra(usuario_id, produto_nome, quantidade) {
+  const produto = db.products.findOne({ nome: produto_nome });
+  if (!produto) throw "Produto não encontrado.";
+  if (produto.quantidade_disponivel < quantidade) throw "Estoque insuficiente.";
+
+  const total = produto.preco.valor * quantidade;
+  const pontos = Math.floor(total * 0.01); // 1% em pontos fidelidade
+
+  // Inserir pedido
+  const pedido = db.orders.insertOne({
+    usuario_id,
+    usuario_email: db.users.findOne({ _id: usuario_id }).email,
+    items: [{ product: produto.nome, qty: quantidade }],
+    total,
+    status: "pendente",
+    data: new Date(),
+    pontos_fidelidade_gerados: pontos
+  });
+
+  // Atualizar estoque
+  db.products.updateOne({ nome: produto_nome }, { $inc: { quantidade_disponivel: -quantidade } });
+
+  // Atualizar pontos do usuário
+  db.users.updateOne({ _id: usuario_id }, { $inc: { pontos_fidelidade: pontos } });
+
+  print(`Compra criada com sucesso. ID: ${pedido.insertedId}`);
+  return pedido.insertedId;
 }
-// const newTransId = createPurchase(userRes[1], prodRes[4], 1);
 
-// 5.4 Atualizar quantidade de produto após uma compra (separado):
-db.products.updateOne({_id: prodRes[4]}, {$inc: {quantity: -1}});
+// Exemplo de uso:
+// criarCompra(1, "Fone sem fio", 1);
+
+// 4) Atualizar quantidade de produto após compra
+db.products.updateOne({ nome: "Fone sem fio" }, { $inc: { quantidade_disponivel: -1 } });
+
 
 // ---------------- 6) Agregações ----------------
 
 // 6.1 Calcular a média de avaliação por produto
 const avgRatingPerProduct = db.reviews.aggregate([
-  { $group: { _id: '$productId', avgRating: { $avg: '$rating' }, count: { $sum: 1 } } },
-  { $lookup: { from: 'products', localField: '_id', foreignField: '_id', as: 'product' } },
-  { $unwind: '$product' },
-  { $project: { productName: '$product.name', avgRating: 1, count:1 } }
+  {
+    $group: {
+      _id: "$productName",
+      avgRating: { $avg: "$rating" },
+      totalAvaliacoes: { $sum: 1 }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      produto: "$_id",
+      mediaAvaliacoes: { $round: ["$avgRating", 2] },
+      totalAvaliacoes: 1
+    }
+  }
 ]).toArray();
-print('Média de avaliação por produto:', JSON.stringify(avgRatingPerProduct, null, 2));
+
+print("Média de avaliação por produto:", JSON.stringify(avgRatingPerProduct, null, 2));
+
 
 // 6.2 Calcular o total de vendas por categoria
-// pipeline: unwind items -> lookup product -> group by categoryId
-const salesByCategory = db.transactions.aggregate([
-  { $unwind: '$items' },
-  { $lookup: { from: 'products', localField: 'items.productId', foreignField: '_id', as: 'product' } },
-  { $unwind: '$product' },
-  { $group: { _id: '$product.categoryId', totalRevenue: { $sum: { $multiply: ['$items.qty','$items.priceAtPurchase'] } }, totalQty: { $sum: '$items.qty' } } },
-  { $lookup: { from: 'categories', localField: '_id', foreignField: '_id', as: 'category' } },
-  { $unwind: '$category' },
-  { $project: { categoryName: '$category.name', totalRevenue:1, totalQty:1 } }
+// Desmembra os items, junta com os produtos para pegar a categoria e agrupa
+
+const vendasPorCategoria = db.orders.aggregate([
+  { $unwind: "$items" },
+  {
+    $lookup: {
+      from: "products",
+      localField: "items.product",
+      foreignField: "nome",
+      as: "produto"
+    }
+  },
+  { $unwind: "$produto" },
+  {
+    $group: {
+      _id: "$produto.categoria",
+      receitaTotal: { $sum: { $multiply: ["$items.qty", "$produto.preco.valor"] } },
+      quantidadeVendida: { $sum: "$items.qty" }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      categoria: "$_id",
+      receitaTotal: { $round: ["$receitaTotal", 2] },
+      quantidadeVendida: 1
+    }
+  }
 ]).toArray();
-print('Vendas por categoria:', JSON.stringify(salesByCategory, null, 2));
+
+print("Total de vendas por categoria:", JSON.stringify(vendasPorCategoria, null, 2));
+
+// -----------------------------------------------------------
 
 // 6.3 Relatórios de vendas por vendedor (quantidade vendida e receita total)
-const salesBySeller = db.transactions.aggregate([
-  { $unwind: '$items' },
-  { $group: { _id: '$sellerId', revenue: { $sum: { $multiply:['$items.qty','$items.priceAtPurchase'] } }, qtySold: { $sum: '$items.qty' } } },
-  { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'seller' } },
-  { $unwind: '$seller' },
-  { $project: { sellerName: '$seller.name', revenue:1, qtySold:1 } }
+
+const vendasPorVendedor = db.orders.aggregate([
+  { $unwind: "$items" },
+  {
+    $lookup: {
+      from: "products",
+      localField: "items.product",
+      foreignField: "nome",
+      as: "produto"
+    }
+  },
+  { $unwind: "$produto" },
+  {
+    $group: {
+      _id: "$produto.vendedor_id", // precisa existir no documento de produto
+      receita: { $sum: { $multiply: ["$items.qty", "$produto.preco.valor"] } },
+      quantidadeVendida: { $sum: "$items.qty" }
+    }
+  },
+  {
+    $lookup: {
+      from: "users",
+      localField: "_id",
+      foreignField: "_id",
+      as: "vendedor"
+    }
+  },
+  { $unwind: { path: "$vendedor", preserveNullAndEmptyArrays: true } },
+  {
+    $project: {
+      _id: 0,
+      vendedor: "$vendedor.nome",
+      receita: { $round: ["$receita", 2] },
+      quantidadeVendida: 1
+    }
+  }
 ]).toArray();
-print('Vendas por vendedor:', JSON.stringify(salesBySeller, null, 2));
+
+print("Relatório de vendas por vendedor:", JSON.stringify(vendasPorVendedor, null, 2));
+
 
 // ---------------- 7) Sprint 2: Novos requisitos e migrações ----------------
 
-// 7.1 Adicionar um campo de promoções a um produto (exemplo de update)
-// inserir promoção num produto
-db.products.updateOne({_id: prodRes[1]}, {$push: { promotions: { discount: 0.1, start: new Date('2025-11-10'), end: new Date('2025-11-20') } }});
+// 7.1 Inserir promoção em um produto específico
+const produtoPromo = db.products.findOne({ nome: "Fone sem fio" });
+if (produtoPromo) {
+  db.products.updateOne(
+    { _id: produtoPromo._id },
+    {
+      $push: {
+        promocoes_ativas: {
+          discount: 0.1, // 10% de desconto
+          start: new Date("2025-11-10"),
+          end: new Date("2025-11-20")
+        }
+      }
+    }
+  );
+  print("7.1: Promoção adicionada ao 'Fone sem fio'.");
+} else {
+  print("7.1: Produto 'Fone sem fio' não encontrado. Promoção NÃO adicionada.");
+}
 
-// 7.2 Backfill: garantir que todos os usuários tenham loyaltyPoints (se campo ausente)
-db.users.updateMany({ loyaltyPoints: { $exists: false } }, { $set: { loyaltyPoints: 0 } });
+// 7.2 Backfill: garantir que todos os usuários tenham pontos de fidelidade
+db.users.updateMany(
+  { pontos_fidelidade: { $exists: false } },
+  { $set: { pontos_fidelidade: 0 } }
+);
+print("7.2: Backfill de pontos_fidelidade concluído.");
 
-// 7.3 Resposta a review (vendedor responde)
-db.reviews.updateOne({_id: db.reviews.findOne({productId: prodRes[0]})._id}, { $set: { response: { sellerId: userRes[0], text: 'Obrigado pelo feedback!', date: new Date() } } });
+// 7.3 Resposta do vendedor a uma review
+const reviewAlvo = db.reviews.findOne({ productName: "Fone sem fio" });
+if (reviewAlvo) {
+  db.reviews.updateOne(
+    { _id: reviewAlvo._id },
+    {
+      $set: {
+        response: {
+          sellerEmail: "ana@example.com",
+          texto: "Obrigado pelo feedback!",
+          data: new Date()
+        }
+      }
+    }
+  );
+  print("7.3: Resposta do vendedor adicionada à review.");
+} else {
+  print("7.3: Nenhuma review encontrada para 'Fone sem fio'.");
+}
 
-// 7.4 Geolocation: já adicionamos location nos users e products
+// 7.4 Atualizar usuários existentes para incluir localização
+db.users.updateMany(
+  { localizacao_geografica: { $exists: false } },
+  {
+    $set: {
+      localizacao_geografica: { type: "Point", coordinates: [-46.633309, -23.55052] }
+    }
+  }
+);
+print("7.4: Localização geográfica padrão aplicada a usuários faltantes.");
+
+// 7.5 Buscar produtos a até 30 km da localização do usuário
+const user = db.users.findOne({ email: "ana@example.com" });
+if (user && user.localizacao_geografica) {
+  const produtosProximos = db.products.find({
+    localizacao_geografica: {
+      $near: {
+        $geometry: user.localizacao_geografica,
+        $maxDistance: 30000 // 30 km
+      }
+    }
+  }).toArray();
+  print("7.5: Produtos próximos (30km):", JSON.stringify(produtosProximos, null, 2));
+} else {
+  print("7.5: Usuário 'ana@example.com' não encontrado ou sem localização.");
+}
 
 // ---------------- 8) Consultas Avançadas (geospatial + análises) ----------------
 
 // 8.1 Buscar produtos próximos ao usuário dentro de um raio X (metros)
-function findProductsNear(userId, radiusMeters){
-  const user = db.users.findOne({_id: userId});
-  if(!user || !user.location) return [];
-  return db.products.find({ location: { $near: { $geometry: user.location, $maxDistance: radiusMeters } } }).toArray();
+function findProductsNear(userId, radiusMeters) {
+  const user = db.users.findOne({ _id: userId });
+  if (!user || !user.localizacao_geografica) {
+    print(`Usuário com _id=${userId} não encontrado ou sem localização.`);
+    return [];
+  }
+  return db.products.find({
+    localizacao_geografica: {
+      $near: {
+        $geometry: user.localizacao_geografica,
+        $maxDistance: radiusMeters
+      }
+    }
+  }).toArray();
 }
-// exemplo: produtos dentro de 50km (50000m) do userRes[0]
-const nearby = findProductsNear(userRes[0], 50000);
-print('Produtos próximos:', JSON.stringify(nearby, null, 2));
 
-// 8.2 Calcular a média de distância entre compradores e vendedores para transações concluídas
-// aproximação usando $geoNear requires index and starts pipeline; se não disponível, calculamos haversine no client. Exemplo $geoNear pipeline:
-const avgDistance = db.transactions.aggregate([
-  { $match: { status: 'DELIVERED' } },
-  { $unwind: '$items' },
-  { $lookup: { from: 'users', localField: 'buyerId', foreignField: '_id', as: 'buyer' } },
-  { $unwind: '$buyer' },
-  { $lookup: { from: 'users', localField: 'sellerId', foreignField: '_id', as: 'seller' } },
-  { $unwind: '$seller' },
-  { $project: { distance: { $let: { vars: { 
-        lat1: { $arrayElemAt: ['$buyer.location.coordinates',1] }, lng1: { $arrayElemAt: ['$buyer.location.coordinates',0] },
-        lat2: { $arrayElemAt: ['$seller.location.coordinates',1] }, lng2: { $arrayElemAt: ['$seller.location.coordinates',0] }
-      }, in: { $multiply: [111195, { $sqrt: { $add: [ { $pow: [{ $subtract: ['$$lat1','$$lat2'] }, 2] }, { $pow: [{ $subtract: ['$$lng1','$$lng2'] }, 2] } ] } } ] } } } } },
-  { $group: { _id: null, avgDistanceMeters: { $avg: '$distance' } } }
+// Exemplo: produtos dentro de 50km (50000m) do usuário com _id = 1
+const nearby = findProductsNear(1, 50000);
+print('8.1 Produtos próximos (50km):', JSON.stringify(nearby, null, 2));
+
+// 8.2 Calcular a média de distância entre compradores e vendedores (ajustado para schema real)
+const avgDistance = db.orders.aggregate([
+  { $match: { status: { $in: ["completo", "entregue"] } } },
+  { $unwind: "$items" },
+  {
+    $lookup: {
+      from: "users",
+      localField: "usuario_id",
+      foreignField: "_id",
+      as: "comprador"
+    }
+  },
+  { $unwind: "$comprador" },
+  {
+    $lookup: {
+      from: "products",
+      localField: "items.product",
+      foreignField: "nome",
+      as: "produto"
+    }
+  },
+  { $unwind: "$produto" },
+  {
+    $lookup: {
+      from: "users",
+      localField: "produto.vendedor",
+      foreignField: "email",
+      as: "vendedor"
+    }
+  },
+  { $unwind: "$vendedor" },
+  {
+    $match: {
+      "comprador.localizacao_geografica": { $exists: true },
+      "vendedor.localizacao_geografica": { $exists: true }
+    }
+  },
+  {
+    $project: {
+      distKm: {
+        $let: {
+          vars: {
+            lat1: { $arrayElemAt: ["$comprador.localizacao_geografica.coordinates", 1] },
+            lng1: { $arrayElemAt: ["$comprador.localizacao_geografica.coordinates", 0] },
+            lat2: { $arrayElemAt: ["$vendedor.localizacao_geografica.coordinates", 1] },
+            lng2: { $arrayElemAt: ["$vendedor.localizacao_geografica.coordinates", 0] }
+          },
+          in: {
+            $multiply: [
+              111.195,
+              {
+                $sqrt: {
+                  $add: [
+                    { $pow: [{ $subtract: ["$$lat1", "$$lat2"] }, 2] },
+                    { $pow: [{ $subtract: ["$$lng1", "$$lng2"] }, 2] }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    $group: {
+      _id: null,
+      avgDistanceKm: { $avg: "$distKm" }
+    }
+  }
 ]).toArray();
-print('Distância média (m):', JSON.stringify(avgDistance, null, 2));
+
+print('8.2 Distância média (km) entre comprador e vendedor:', JSON.stringify(avgDistance, null, 2));
 
 // 8.3 Encontrar a categoria de produto mais vendida em uma área geográfica específica
-function mostSoldCategoryInArea(centerLng, centerLat, radiusMeters){
-  const earthRadius = 6378137; // metros
+function mostSoldCategoryInArea(centerLng, centerLat, radiusMeters) {
+  const earthRadius = 6378137;
   const radiusInRadians = radiusMeters / earthRadius;
-  return db.transactions.aggregate([
-    { $unwind: '$items' },
-    { $lookup: { from: 'products', localField: 'items.productId', foreignField: '_id', as: 'product' } },
-    { $unwind: '$product' },
-    { $match: { 'product.location': { $geoWithin: { $centerSphere: [ [ centerLng, centerLat ], radiusInRadians ] } } } },
-    { $group: { _id: '$product.categoryId', totalQty: { $sum: '$items.qty' } } },
+
+  return db.products.aggregate([
+    {
+      $match: {
+        localizacao_geografica: {
+          $geoWithin: {
+            $centerSphere: [[centerLng, centerLat], radiusInRadians]
+          }
+        }
+      }
+    },
+    {
+      $lookup: {
+        from: "orders",
+        localField: "nome",
+        foreignField: "items.product",
+        as: "pedidos"
+      }
+    },
+    { $unwind: "$pedidos" },
+    { $unwind: "$pedidos.items" },
+    { $match: { $expr: { $eq: ["$nome", "$pedidos.items.product"] } } },
+    {
+      $group: {
+        _id: "$categoria",
+        totalQty: { $sum: "$pedidos.items.qty" }
+      }
+    },
     { $sort: { totalQty: -1 } },
-    { $limit: 1 },
-    { $lookup: { from: 'categories', localField: '_id', foreignField: '_id', as: 'category' } },
-    { $unwind: '$category' },
-    { $project: { categoryName: '$category.name', totalQty:1 } }
+    { $limit: 1 }
   ]).toArray();
 }
 
-// Exemplo de uso (50km em torno de Curitiba coordenadas do userRes[0])
-const mostSold = mostSoldCategoryInArea(-49.2733, -25.4278, 50000);
-print('Categoria mais vendida na área:', JSON.stringify(mostSold, null, 2));
+const mostSold = mostSoldCategoryInArea(-49.264587, -25.428954, 50000);
+print('8.3 Categoria mais vendida na área:', JSON.stringify(mostSold, null, 2));
 
 // ---------------- 9) Tópicos Complementares de Performance ----------------
 
-// 9.1 explain() para uma query: exemplo de explain em uma busca por categoria
-printjson(db.products.find({ categoryId: catIds[0] }).explain('executionStats'));
+// 9.1 explain() em consultas
+db.products.createIndex({ categoria: 1 }, { background: true });
+db.orders.createIndex({ usuario_id: 1, data: -1 }, { background: true });
 
-// 9.2 Comparação embed vs ref (exemplo conceitual):
-// - Embed (ex: items dentro de transaction) => leitura de transação única é rápida, menos joins.
-// - Reference (ex: product details em transaction por productId) => evita duplicação e mantém dados atualizáveis, porém requer $lookup em relatórios.
-// Para cargas de leitura heavy em transações, considerar copiar campos essenciais (nome, priceAtPurchase) para o documento de transaction (design denormalizado) e manter referência para productId.
+print("\n9.1 EXPLAIN: Busca de produtos por categoria (com índice)");
+printjson(
+  db.products.find({ categoria: "eletrônicos" }).explain("executionStats")
+);
 
-// 9.3 Análise de performance com explain() e índices: use explain('executionStats') nas queries que você quiser otimizar.
+// ---------------- 9.2 Comparação: Embed vs Reference ----------------
 
-// 9.4 Estratégias de Sharding (conceito + exemplo de comando):
-// - Chave de shard: escolha uma chave com alta cardinalidade e que distribua a carga (ex: sellerId ou hash de productId) dependendo do padrão de consultas.
-// - Exemplo (apenas se cluster sharded estiver disponível):
-// sh.enableSharding('marketplace');
-// db.products.createIndex({ sellerId: 1, _id: 1 });
-// sh.shardCollection('marketplace.products', { sellerId: 'hashed' });
-// Observação: testar em ambiente simulado e medir antes de migrar.
+// a) Modelo EMBED
+db.orders.insertOne({
+  usuario_id: 1,
+  items: [
+    { nome: "Fone sem fio", preco: 199.9, quantidade: 1 },
+    { nome: "Cabo USB-C", preco: 30.0, quantidade: 2 }
+  ],
+  total: 259.9,
+  data: new Date(),
+  status: "entregue"
+});
+print("9.2a: Pedido com modelo EMBED inserido.");
 
-// ---------------- FIM ----------------
+// b) Modelo REFERENCIADO (usando _id real)
+const produtoRef = db.products.findOne({ nome: "Televisor" });
+if (produtoRef) {
+  db.orders.insertOne({
+    usuario_id: 2,
+    usuario_email: "eduardo@exemplo.com",
+    items: [{ productId: produtoRef._id, qty: 1 }],
+    total: 2500,
+    status: "completo",
+    data: new Date(),
+    pontos_fidelidade_gerados: 250
+  });
+  print("9.2b: Pedido com modelo REFERENCIADO inserido.");
+} else {
+  print("9.2b: Produto 'Televisor' não encontrado. Pedido referenciado NÃO inserido.");
+}
+
+// EXPLAIN com $lookup (só se houver pedidos com productId)
+const refOrder = db.orders.findOne({ "items.productId": { $exists: true } });
+if (refOrder) {
+  print("\n9.2 EXPLAIN: Consulta com $lookup em modelo referenciado");
+  printjson(
+    db.orders.aggregate([
+      { $match: { "items.productId": { $exists: true } } },
+      { $unwind: "$items" },
+      {
+        $lookup: {
+          from: "products",
+          localField: "items.productId",
+          foreignField: "_id",
+          as: "product"
+        }
+      },
+      { $unwind: { path: "$product", preserveNullAndEmptyArrays: true } },
+      { $project: { "product.nome": 1, "items.qty": 1 } }
+    ]).explain("executionStats")
+  );
+} else {
+  print("\n9.2: Nenhum pedido com 'productId' encontrado. EXPLAIN de referência pulado.");
+}
+
+// ---------------- 9.3 Índices e análise de performance ----------------
+print("\n9.3 EXPLAIN: Consulta otimizada com índice composto");
+printjson(
+  db.orders
+    .find({ usuario_id: 1 })
+    .sort({ data: -1 })
+    .limit(5)
+    .explain("executionStats")
+);
+
+// ---------------- 9.4 Estratégias de Sharding (simulação) ----------------
+print("\n9.4 Estratégia de Sharding — conceito e exemplo");
+db.products.createIndex({ vendedor: 1 });
+print("Índice em 'vendedor' criado para sharding.");
+print("\nComandos teóricos de sharding:");
+print("sh.enableSharding('marketplace');");
+print("sh.shardCollection('marketplace.products', { vendedor: 'hashed' });");
+
+// ---------------- Pipeline com $facet (ajustado para schema real) ----------------
+print("\n9.5 Pipeline avançado com $facet (schema real)");
+
+// NOTA: Seu schema NÃO usa _id em relações, então este pipeline é simbólico.
+// Para funcionalidade real, seria necessário reestruturar.
+print("AVISO: Pipeline $facet mantido como exemplo conceitual (não funcional com schema atual).");
+printjson({ 
+  message: "Use productName e vendedor (email) para relações reais.",
+  suggestion: "Reestruture orders para usar productId se quiser $lookup eficiente."
+});
